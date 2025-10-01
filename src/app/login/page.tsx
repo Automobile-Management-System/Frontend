@@ -6,13 +6,40 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Add your authentication logic here
-    console.log('Login attempt:', { email, password });
-    setTimeout(() => setIsLoading(false), 1000);
+    setError(null); // Clear previous errors
+
+    try {
+      const response = await fetch('http://localhost:5001/api/Auth/login/v1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // IMPORTANT: This tells the browser to send cookies with the request
+        // and to accept the 'Set-Cookie' header from the backend.
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        // Login successful, browser has received the HttpOnly cookie.
+        // Redirect to a protected page.
+        window.location.href = '/dashboard'; // Or any other page
+      } else {
+        // Handle failed login (e.g., 401 Unauthorized)
+        const errorMessage = await response.text(); // Backend sends a plain text error
+        setError(errorMessage || 'Invalid credentials. Please try again.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An network error occurred. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignIn = () => {
@@ -33,8 +60,12 @@ export default function Login() {
           <p className="text-gray-400">Sign in to continue to your account</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-gray-200 rounded-2xl shadow-2xl p-8 border border-gray-700">
+        {/* Login Form */}
+        <form 
+          onSubmit={handleSubmit}
+          className="bg-gray-200 rounded-2xl shadow-2xl p-8 border border-gray-700"
+          noValidate
+        >
           <div className="space-y-6">
             {/* Email Field */}
             <div>
@@ -46,7 +77,10 @@ export default function Login() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
                 className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent transition"
               />
             </div>
@@ -61,14 +95,24 @@ export default function Login() {
                 type="password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+                }}
                 className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent transition"
               />
             </div>
+            
+            {/* Error Message Display */}
+            {error && (
+              <div className="p-3 rounded-lg text-center text-sm bg-red-200 text-red-800">
+                {error}
+              </div>
+            )}
 
             {/* Sign In Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={isLoading}
               className="w-full py-3 px-4 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-lg shadow-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -88,6 +132,7 @@ export default function Login() {
 
           {/* Google Sign In */}
           <button
+            type="button"
             onClick={handleGoogleSignIn}
             className="w-full py-3 px-4 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-lg shadow-lg transition duration-200 flex items-center justify-center gap-3"
           >
@@ -101,13 +146,13 @@ export default function Login() {
           </button>
 
           {/* Sign Up Link */}
-          <p className="text-center text-sm text-gray-400 mt-6">
+          <p className="text-center text-sm text-gray-600 mt-6">
             Don't have an account?{' '}
-            <a href='/signup'className="text-blue-900 hover:text-blue-600 font-semibold transition">
+            <a href='/signup' className="text-blue-900 hover:text-blue-600 font-semibold transition">
               Sign up
             </a>
           </p>
-        </div>
+        </form>
       </div>
     </div>
   );
