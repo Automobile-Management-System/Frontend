@@ -19,23 +19,18 @@ const items = [
     icon: Home,
   },
   {
-    title: "Users",
-    url: "/admin/users",
+    title: "User Management",
+    url: "/admin/user_management",
     icon: Inbox,
   },
   {
-    title: "Calendar",
-    url: "#",
+    title: "Service Management",
+    url: "/admin/service_management",
     icon: Calendar,
   },
   {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
-  {
-    title: "Settings",
-    url: "#",
+    title: "Analytics",
+    url: "/admin/analytics",
     icon: Settings,
   },
 ]
