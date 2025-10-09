@@ -1,52 +1,26 @@
-// import { Geist, Geist_Mono } from "next/font/google";
-// import AdminSideBar from "../../../components/admin/adminsidebar";
+"use client";
 
+import { useState } from "react";
+import AdminSidebar from "../../../components/admin/adminsidebar";
 
-// const geistSans = Geist({
-//   variable: "--font-geist-sans",
-//   subsets: ["latin"],
-// });
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  // ✅ useState must be inside the component
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-// const geistMono = Geist_Mono({
-//   variable: "--font-geist-mono",
-//   subsets: ["latin"],
-// });
+  const handleToggle = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
-
-
-// export default function AdminLayout({
-//   children,
-// }: Readonly<{
-//   children: React.ReactNode;
-// }>) {
-//   return (
-//     <html lang="en">
-//       <body
-//         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-//       >
-//         <AdminSideBar/>
-//         {children}
-//       </body>
-//     </html>
-//   );
-// }
-
-
-
-
-
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { AdminSidebar } from "../../../components/admin/adminsidebar"
-
-
-export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <AdminSidebar/>
-      <main>
-        <SidebarTrigger />
-        {children}
-      </main>
-    </SidebarProvider>
-  )
+       <div className="flex h-screen bg-gray-50">
+      {/* Sidebar Component */}
+      <AdminSidebar isOpen={sidebarOpen} onToggle={handleToggle} />
+
+  
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+  
+  );
 }
