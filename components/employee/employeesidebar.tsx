@@ -19,25 +19,15 @@ const items = [
     icon: Home,
   },
   {
-    title: "Services",
-    url: "/employee/services",
+    title: "Service Progress",
+    url: "/employee/service_progress",
     icon: Inbox,
   },
   {
-    title: "Calendar",
-    url: "#",
+    title: "Appointments & Requests",
+    url: "/employee/appointments",
     icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-  },
+  }
 ]
 
 export function EmployeeSidebar() {
