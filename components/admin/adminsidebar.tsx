@@ -176,7 +176,7 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
     { icon: Home, label: 'Dashboard', path: '/admin/dashboard', badge: null },
      { icon: User2, label: 'User Management', path: '/admin/user_management', badge: null },
      { icon: Wrench, label: 'Service Management', path: '/admin/service_management', badge: null },
-      { icon: FileInput, label: 'Modification Requests', path: '/admin/modifications', badge: null },
+      { icon: FileInput, label: 'Modification Requests', path: '/admin/modification_requests', badge: null },
     { icon: ChartBar, label: 'Analytics', path: '/admin/analytics', badge: null },
     
   ];
