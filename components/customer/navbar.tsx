@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, LogOut, Menu } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from '../../src/app/context/AuthContext'; // Import the useAuth hook
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,21 +20,22 @@ import { Badge } from "@/components/ui/badge";
 export function CustomerNavbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  const { user, logout } = useAuth(); // Get user and logout from context
+
   const navigationItems = [
     { name: "Dashboard", href: "/customer/dashboard" },
     { name: "Appointments", href: "/customer/appointments" },
     { name: "Modifications", href: "/customer/modifications" },
     { name: "Payments", href: "/customer/payments" },
-    { name: "Support Chat", href: "/customer/support" },
   ];
 
-  const user = {
-    name: "John Doe",
-    role: "Customer",
-    avatar: "", // Add avatar URL if available
-    initials: "JD",
-  };
+  // Create dynamic user details with fallbacks
+  const displayName = user ? `${user.firstName} ${user.lastName}` : "Guest";
+  const displayRole = user ? user.role : "...";
+  const displayInitials = user
+    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+    : "G";
+  const userAvatar = ""; // You can add this to your User interface later if needed
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-white">
@@ -80,7 +82,7 @@ export function CustomerNavbar() {
 
         {/* Right Section */}
         <div className="hidden lg:flex items-center gap-4">
-          {/* Notifications */}
+          {/* Notifications (No changes) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
@@ -115,14 +117,14 @@ export function CustomerNavbar() {
                 className="flex items-center gap-3 h-auto py-2 px-3"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={userAvatar} alt={displayName} />
                   <AvatarFallback className="bg-[#1e3a5f] text-white text-sm">
-                    {user.initials}
+                    {displayInitials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
-                  <span className="text-sm font-medium">{user.name}</span>
-                  <span className="text-xs text-gray-500">{user.role}</span>
+                  <span className="text-sm font-medium">{displayName}</span>
+                  <span className="text-xs text-gray-500">{displayRole}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -140,7 +142,10 @@ export function CustomerNavbar() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem
+                className="text-red-600 cursor-pointer"
+                onClick={() => logout()}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
@@ -148,7 +153,7 @@ export function CustomerNavbar() {
           </DropdownMenu>
         </div>
       </div>
-      
+
       {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
         <div className="lg:hidden border-t bg-white">
@@ -167,19 +172,19 @@ export function CustomerNavbar() {
                 {item.name}
               </Link>
             ))}
-            
+
             {/* Mobile User Actions */}
             <div className="pt-4 border-t mt-4">
               <div className="flex items-center gap-3 px-4 py-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={userAvatar} alt={displayName} />
                   <AvatarFallback className="bg-[#1e3a5f] text-white text-sm">
-                    {user.initials}
+                    {displayInitials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium">{user.name}</span>
-                  <span className="text-xs text-gray-500">{user.role}</span>
+                  <span className="text-sm font-medium">{displayName}</span>
+                  <span className="text-xs text-gray-500">{displayRole}</span>
                 </div>
               </div>
               <Link
@@ -189,7 +194,13 @@ export function CustomerNavbar() {
               >
                 Profile Settings
               </Link>
-              <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-md">
+              <button
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-md"
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+              >
                 <LogOut className="inline mr-2 h-4 w-4" />
                 Log out
               </button>
