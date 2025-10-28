@@ -29,6 +29,7 @@ export function Navbar({ isLoggedIn = false, onLogout }: NavbarProps) {
   const publicNavItems = [
     { name: "Home", href: "/" },
     { name: "About", href: "/about" },
+    { name: "Services", href:"/services"},
     { name: "Contact", href: "/contact" },
   ];
 
@@ -76,7 +77,7 @@ export function Navbar({ isLoggedIn = false, onLogout }: NavbarProps) {
           <div className="hidden sm:block">
             <div className="flex items-baseline">
               <span className="text-xl font-bold text-white">AutoServe</span>
-              <span className="text-xl font-bold text-pink-300"> 360</span>
+              <span className="text-xl font-bold text-orange-400"> 360</span>
             </div>
             <div className="text-[10px] text-gray-300 tracking-widest -mt-1">
               AUTOMOBILE MANAGEMENT
