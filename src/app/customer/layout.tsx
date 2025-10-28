@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../../../components/common/navbar';
-import { CustomerFooter } from '../../../components/customer/footer';
+import { Footer } from '../../../components/common/footer';
 import React from 'react';
 
 // Simple loading component
@@ -48,7 +48,7 @@ export default function CustomerLayout({
         {children}
       </main>
       <footer className="mt-auto">
-        <CustomerFooter />
+        <Footer />
       </footer>
     </div>
   );
