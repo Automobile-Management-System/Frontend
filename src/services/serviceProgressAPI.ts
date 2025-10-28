@@ -52,6 +52,42 @@ class ServiceProgressAPI {
     }));
   }
 
+  // Try to get all appointments for an employee regardless of status
+  async getAllEmployeeAppointments(employeeId: number): Promise<ServiceProgressDto[]> {
+    try {
+      // Try different potential endpoints that might return all appointments
+      const endpoints = [
+        `/employee/${employeeId}/all`,
+        `/employee/${employeeId}?includeAll=true`,
+        `/appointments/employee/${employeeId}`,
+        `/all/employee/${employeeId}`
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          const rawData = await this.request<any[]>(endpoint);
+          
+          // Convert numeric enums to string values for frontend use
+          return rawData.map(item => ({
+            ...item,
+            status: AppointmentStatusFromEnum[item.status as keyof typeof AppointmentStatusFromEnum] || 'Pending',
+            serviceType: ServiceTypeFromEnum[item.serviceType as keyof typeof ServiceTypeFromEnum] || 'Service',
+            customerId: item.customerId || item.appointmentId
+          }));
+        } catch (error) {
+          // Continue to next endpoint if this one fails
+          continue;
+        }
+      }
+      
+      // If no special endpoint works, fall back to the original method
+      return this.getEmployeeServiceProgress(employeeId);
+    } catch (error) {
+      // Fall back to original method if all fail
+      return this.getEmployeeServiceProgress(employeeId);
+    }
+  }
+
   async getServiceProgressById(appointmentId: number): Promise<ServiceProgressDto> {
     return this.request<ServiceProgressDto>(`/appointment/${appointmentId}`);
   }
