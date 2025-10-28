@@ -33,7 +33,7 @@ export default function Login() {
       });
 
       if (response.ok) {
-        window.location.href = '/dashboard'; // Redirect on success
+        window.location.href = '/customer/dashboard'; // Redirect on success
       } else {
         const errorMessage = await response.text();
         setError(errorMessage || 'Invalid credentials. Please try again.');
