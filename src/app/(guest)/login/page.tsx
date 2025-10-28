@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react'; // Import useEffect
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter
+import { useAuth } from '../../context/AuthContext'; // Import useAuth
+import { getDashboardByRole } from '@/lib/utils'; // Import helper
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -8,7 +11,10 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ADDED: Check for error messages in the URL (from Google OAuth redirect)
+  const router = useRouter(); // Initialize router
+  const { setUser } = useAuth(); // Get setUser from context
+
+  // Check for error messages in the URL (from Google OAuth redirect)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
@@ -20,7 +26,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
 
     try {
       const response = await fetch('http://localhost:5001/api/Auth/login/v1', {
@@ -28,15 +34,20 @@ export default function Login() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
+        credentials: 'include', // This sends/receives cookies
         body: JSON.stringify({ email, password }),
       });
 
       if (response.ok) {
-        window.location.href = '/customer/dashboard'; // Redirect on success
+        const user = await response.json(); // Get user data from response
+        setUser(user); // Set the user in the global context
+
+        // MODIFIED: Redirect based on role
+        const dashboardUrl = getDashboardByRole(user.role);
+        router.push(dashboardUrl); // Use router.push for client-side navigation
       } else {
-        const errorMessage = await response.text();
-        setError(errorMessage || 'Invalid credentials. Please try again.');
+        const errorText = await response.text();
+        setError(errorText || 'Invalid credentials. Please try again.');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -46,10 +57,8 @@ export default function Login() {
     }
   };
 
-  // --- UPDATED ---
   const handleGoogleSignIn = () => {
-    // Simply redirect to the backend endpoint that starts the Google auth flow.
-    // The backend will handle the redirect to Google.
+    // This is correct. The backend handles the entire flow and redirect.
     window.location.href = 'http://localhost:5001/api/Auth/google-login';
   };
 
