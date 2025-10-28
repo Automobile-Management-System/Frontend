@@ -7,14 +7,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  CheckCircle, XCircle, Clock, AlertCircle, User, Calendar, 
-  FileText, Loader2, X 
+  CheckCircle, XCircle, Clock, AlertCircle, User,  FileText, 
+  Hourglass
 } from 'lucide-react';
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -25,180 +24,116 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/a
 
 // Interfaces
 interface ModificationRequest {
-  id: number;
-  customerId: number;
-  customerName: string;
-  appointmentId: number;
-  serviceType: string;
-  appointmentDate: string;
-  title: string;
+  modificationId: number;
+  modificationName: string;
   description: string;
-  requestType: string;
+  userName: string;
+  vehicleNumber: string;
   status: string;
-  estimatedCost?: number;
-  adminResponse?: string;
-  respondedBy?: string;
-  respondedAt?: string;
-  createdAt: string;
+  dateTime: string;
+  amount: number;
+  assignee: string;
+  appointmentId: number;
 }
 
-interface ReviewRequestPayload {
-  action: 'approve' | 'reject';
-  adminResponse: string;
-  estimatedCost?: number;
-  respondedBy: number;
+interface AssignedEmployee {
+  employeeId: number;
+  employeeName: string;
+  assignedCount: number;
 }
 
-interface ToastMessage {
-  id: number;
-  title: string;
-  description: string;
-  type: 'success' | 'error' | 'warning';
-}
-
-// API helpers
+// Fetch helpers
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('authToken');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-
-  try {
-    const response = await fetch(url, { ...options, headers });
-    if (!response.ok) {
-      const errorText = await response.text();
-      let error;
-      try {
-        error = JSON.parse(errorText);
-      } catch {
-        error = { message: errorText || 'Request failed' };
-      }
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    return response.json();
-  } catch (err) {
-    throw err;
-  }
+  const headers = { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }), ...options.headers };
+  const res = await fetch(url, { ...options, headers });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
 };
 
-const getAllRequests = async (): Promise<ModificationRequest[]> => {
-  return fetchWithAuth(`${API_BASE_URL}/admin/modification-requests`);
-};
-
-const reviewRequest = async (id: number, payload: ReviewRequestPayload): Promise<ModificationRequest> => {
-  return fetchWithAuth(`${API_BASE_URL}/admin/modification-requests/${id}/review`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
-};
-
-// Toast Component
-function Toast({ message, onClose }: { message: ToastMessage; onClose: () => void }) {
-  const bgColor =
-    message.type === 'success'
-      ? 'bg-green-50 border-green-200'
-      : message.type === 'error'
-      ? 'bg-red-50 border-red-200'
-      : 'bg-yellow-50 border-yellow-200';
-
-  const iconColor =
-    message.type === 'success'
-      ? 'text-green-600'
-      : message.type === 'error'
-      ? 'text-red-600'
-      : 'text-yellow-600';
-
-  const Icon =
-    message.type === 'success'
-      ? CheckCircle
-      : message.type === 'error'
-      ? XCircle
-      : AlertCircle;
-
-  useEffect(() => {
-    const timer = setTimeout(() => onClose(), 4000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg ${bgColor}`}>
-      <Icon className={`h-5 w-5 ${iconColor}`} />
-      <div className="flex-1">
-        <p className="font-semibold text-sm">{message.title}</p>
-        <p className="text-sm text-gray-600 mt-1">{message.description}</p>
-      </div>
-      <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
-// Main Component
 export default function ModificationRequestsPage() {
   const [requests, setRequests] = useState<ModificationRequest[]>([]);
+  const [employees, setEmployees] = useState<AssignedEmployee[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<ModificationRequest | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [responseText, setResponseText] = useState('');
   const [estimatedCost, setEstimatedCost] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [selectedAssignee, setSelectedAssignee] = useState<number | null>(null);
+  const [filterStatus, setFilterStatus] = useState('all');
   const [submitting, setSubmitting] = useState(false);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const showToast = (title: string, description: string, type: 'success' | 'error' | 'warning' = 'success') => {
-    setToasts(prev => [...prev, { id: Date.now(), title, description, type }]);
-  };
-  const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
-
+  // Fetch modification requests
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const data = await getAllRequests();
-      setRequests(data);
-    } catch (error: any) {
-      showToast('Error', `Failed to load: ${error.message}`, 'error');
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests`);
+      setRequests(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch requests', err);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch assigned appointments for employees
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests/assigned-appointments`);
+      setEmployees(res || []);
+    } catch (err) {
+      console.error('Failed to fetch employees', err);
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
+    fetchEmployees();
   }, []);
 
-  const handleReview = (r: ModificationRequest) => {
-    setSelectedRequest(r);
-    setResponseText(r.adminResponse || '');
-    setEstimatedCost(r.estimatedCost?.toString() || '');
+  const handleReview = (request: ModificationRequest) => {
+    setSelectedRequest(request);
+    setEstimatedCost(request.amount.toString());
+    setSelectedAssignee(request.assignee === 'Unassigned' ? null : employees.find(e => e.employeeName === request.assignee)?.employeeId || null);
     setDialogOpen(true);
   };
 
-  const handleApproveOrReject = async (action: 'approve' | 'reject') => {
-    if (!selectedRequest) return showToast('Error', 'No request selected', 'error');
-    if (!responseText.trim()) return showToast('Validation Error', 'Please provide a response', 'error');
-
+  const handleApprove = async () => {
+    if (!selectedRequest) return;
     try {
       setSubmitting(true);
-      const adminId = parseInt(localStorage.getItem('userId') || '1');
-      const payload: ReviewRequestPayload = {
-        action,
-        adminResponse: responseText,
-        estimatedCost: estimatedCost && estimatedCost.trim() !== '' ? parseFloat(estimatedCost) : undefined,
-        respondedBy: adminId,
+      const payload = {
+        action: 'approve',
+        estimatedCost: estimatedCost ? parseFloat(estimatedCost) : undefined,
+        assigneeId: selectedAssignee || undefined
       };
-
-      await reviewRequest(selectedRequest.id, payload);
-      showToast('Success', `Request ${action}ed successfully`, 'success');
+      await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests/${selectedRequest.modificationId}/review`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
       setDialogOpen(false);
-      setResponseText('');
-      setEstimatedCost('');
-      setSelectedRequest(null);
       await fetchRequests();
-    } catch (error: any) {
-      showToast('Error', `Failed to ${action}: ${error.message}`, 'error');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedRequest) return;
+    try {
+      setSubmitting(true);
+      const payload = {
+        action: 'reject'
+      };
+      await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests/${selectedRequest.modificationId}/review`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+      setDialogOpen(false);
+      await fetchRequests();
+    } catch (err) {
+      console.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -206,206 +141,154 @@ export default function ModificationRequestsPage() {
 
   const getStatusConfig = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'requested': return { className: 'bg-yellow-100 text-yellow-800', text: 'Pending', icon: Clock };
-      case 'approved': return { className: 'bg-green-100 text-green-800', text: 'Approved', icon: CheckCircle };
-      case 'rejected': return { className: 'bg-red-100 text-red-800', text: 'Rejected', icon: XCircle };
-      case 'completed': return { className: 'bg-gray-100 text-gray-800', text: 'Completed', icon: CheckCircle };
-      default: return { className: 'bg-blue-100 text-blue-800', text: status, icon: Clock };
+      case 'pending': return { text: 'Pending', className: 'bg-yellow-100 text-yellow-800', icon: Clock };
+      case 'inprogress': return { text: 'In Progress', className: 'bg-blue-100 text-blue-800', icon: AlertCircle };
+      case 'approved': return { text: 'Approved', className: 'bg-green-100 text-green-800', icon: CheckCircle };
+      case 'rejected': return { text: 'Rejected', className: 'bg-red-100 text-red-800', icon: XCircle };
+      default: return { text: status, className: 'bg-gray-100 text-gray-800', icon: Clock };
     }
   };
 
-  const filteredRequests = requests.filter(r =>
-    filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase()
-  );
 
-  const stats = [
-    { title: 'Pending', value: requests.filter(r => r.status.toLowerCase() === 'requested').length, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-    { title: 'Approved', value: requests.filter(r => r.status.toLowerCase() === 'approved').length, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
-    { title: 'Rejected', value: requests.filter(r => r.status.toLowerCase() === 'rejected').length, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
-    { title: 'Total', value: requests.length, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-  ];
+  const filteredRequests = requests.filter(r => filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase());
+// Summary statistics
+const totalRequests = requests.length;
+const pendingRequests = requests.filter(r => r.status.toLowerCase() === 'pending').length;
+const inProgressRequests = requests.filter(r => r.status.toLowerCase() === 'inprogress').length;
+const completedRequests = requests.filter(r => r.status.toLowerCase() === 'completed').length;
+const RejectedRequests = requests.filter(r => r.status.toLowerCase() === 'rejected').length;
+const UpcomingRequests = requests.filter(r => r.status.toLowerCase() === 'upcoming').length;
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-[400px]">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
+const stats = [
+  { title: 'Total Requests', value: totalRequests, color: 'text-blue-600', bgColor: 'bg-blue-50', icon: FileText },
+  { title: 'Pending', value: pendingRequests, color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: Clock },
+    { title: 'Approved', value: UpcomingRequests, color: 'text-blue-600', bgColor: 'bg-blue-50', icon: CheckCircle },
+  { title: 'In Progress', value: inProgressRequests, color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: Hourglass },
+  { title: 'Completed', value: completedRequests, color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
+  { title: 'Rejected', value: RejectedRequests, color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle },
+];
 
   return (
-    <>
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-md">
-        {toasts.map(t => <Toast key={t.id} message={t} onClose={() => removeToast(t.id)} />)}
+    <div className="container mx-auto p-4 space-y-6">
+      <h2 className="text-2xl font-bold">Modification Requests</h2>
+{/* Summary Stats */}
+<div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+  {stats.map(stat => {
+    const Icon = stat.icon;
+    return (
+      <Card key={stat.title}>
+        <CardHeader className="flex justify-between items-center pb-2">
+          <CardTitle className="text-sm text-muted-foreground">{stat.title}</CardTitle>
+          <div className={`h-10 w-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+            <Icon className={`h-5 w-5 ${stat.color}`} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stat.value}</div>
+        </CardContent>
+      </Card>
+    );
+  })}
+</div>
+
+      {/* Filter */}
+      <div className="flex items-center gap-4">
+        <Label>Filter Status:</Label>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="inprogress">In Progress</SelectItem>
+            <SelectItem value="upcoming">Approved</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <div>
-          <h2 className="text-3xl font-bold mb-1">Modification Requests</h2>
-          <p className="text-muted-foreground text-sm">Review and manage customer modification requests</p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map(stat => {
-            const Icon = stat.icon;
-            return (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">{stat.title}</CardTitle>
-                  <div className={`h-10 w-10 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Filter */}
-        <div className="flex flex-wrap items-center gap-4">
-          <Label>Filter by Status:</Label>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Requests</SelectItem>
-              <SelectItem value="requested">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Requests */}
-        <div className="grid gap-6">
-          {filteredRequests.map(request => {
-            const statusCfg = getStatusConfig(request.status);
+      {/* Requests List */}
+      {loading ? <p>Loading...</p> : (
+        <div className="grid gap-4">
+          {filteredRequests.map(req => {
+            const statusCfg = getStatusConfig(req.status);
             const StatusIcon = statusCfg.icon;
             return (
-              <Card key={request.id} className="hover:shadow-md transition-shadow p-3 sm:p-4">
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-lg sm:text-xl">{request.title}</CardTitle>
-                      <CardDescription className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                        <User className="h-4 w-4" />
-                        {request.customerName}
-                        <span className="mx-1">•</span>
-                        <Calendar className="h-4 w-4" />
-                        {new Date(request.createdAt).toLocaleDateString()}
-                      </CardDescription>
-                    </div>
-                    <Badge variant="secondary" className={`${statusCfg.className} flex items-center gap-1`}>
-                      <StatusIcon className="h-3 w-3" /> {statusCfg.text}
-                    </Badge>
+              <Card key={req.modificationId}>
+                <CardHeader className="flex justify-between">
+                  <div>
+                    <CardTitle>{req.modificationName}</CardTitle>
+                    <CardDescription>
+                      <User className="h-4 w-4 inline" /> {req.userName} • {req.vehicleNumber} • {new Date(req.dateTime).toLocaleString()}
+                    </CardDescription>
                   </div>
+                  <Badge className={statusCfg.className}>
+                    <StatusIcon className="h-4 w-4 mr-1 inline" /> {statusCfg.text}
+                  </Badge>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Service Details</p>
-                    <p className="text-sm">
-                      <span className="font-medium">{request.serviceType}</span> • 
-                      <span> Scheduled: {new Date(request.appointmentDate).toLocaleDateString()}</span>
-                    </p>
+                <CardContent>
+                  <p>{req.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    Rs. {req.amount}
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Description</p>
-                    <p className="text-sm">{request.description}</p>
-                  </div>
-                  {request.adminResponse && (
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">Admin Response</p>
-                      <p className="text-sm">{request.adminResponse}</p>
-                    </div>
-                  )}
-                  {request.status.toLowerCase() === 'requested' && (
-                    <div className="flex gap-2 pt-2">
-                      <Button onClick={() => handleReview(request)}>Review Request</Button>
-                    </div>
+                  <div className="mt-2">Assignee: {req.assignee}</div>
+                  {req.status.toLowerCase() === 'pending' && (
+                    <Button className="mt-2" onClick={() => handleReview(req)}>Review</Button>
                   )}
                 </CardContent>
               </Card>
             );
           })}
-
-          {filteredRequests.length === 0 && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No modification requests found</p>
-              </CardContent>
-            </Card>
-          )}
         </div>
+      )}
 
-        {/* Review Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Review Modification Request</DialogTitle>
-              <DialogDescription>Approve or reject the customer's modification request</DialogDescription>
-            </DialogHeader>
-
-            {selectedRequest && (
-              <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg space-y-2">
-                  <h4 className="font-semibold">{selectedRequest.title}</h4>
-                  <p className="text-sm text-muted-foreground">{selectedRequest.description}</p>
-                  <div className="text-sm">
-                    <span className="font-medium">Customer:</span> {selectedRequest.customerName}
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-medium">Service:</span> {selectedRequest.serviceType}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cost">Estimated Additional Cost (optional)</Label>
-                  <Input
-                    id="cost"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={estimatedCost}
-                    onChange={(e) => setEstimatedCost(e.target.value)}
-                    disabled={submitting}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="response">Admin Response *</Label>
-                  <Textarea
-                    id="response"
-                    placeholder="Provide details about your decision..."
-                    value={responseText}
-                    onChange={(e) => setResponseText(e.target.value)}
-                    rows={4}
-                    disabled={submitting}
-                  />
-                </div>
+      {/* Review Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Review Request</DialogTitle>
+            <DialogDescription>Approve or reject this modification request</DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div>
+                <p><strong>{selectedRequest.modificationName}</strong></p>
+                <p>{selectedRequest.description}</p>
+                <p>Customer: {selectedRequest.userName}</p>
+                <p>Vehicle: {selectedRequest.vehicleNumber}</p>
+                <p>Date: {new Date(selectedRequest.dateTime).toLocaleString()}</p>
+                <p>Current Assignee: {selectedRequest.assignee}</p>
               </div>
-            )}
-
-            <DialogFooter className="flex flex-wrap gap-2 justify-end">
-              <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={() => handleApproveOrReject('reject')} disabled={submitting}>
-                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <XCircle className="h-4 w-4 mr-2" />}
-                Reject
-              </Button>
-              <Button onClick={() => handleApproveOrReject('approve')} disabled={submitting}>
-                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                Approve
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+              <div className="space-y-2">
+                <Label htmlFor="cost">Estimated Cost</Label>
+                <Input id="cost" type="number" value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="assignee">Assign Employee</Label>
+                <Select value={selectedAssignee ? selectedAssignee.toString() : ''} onValueChange={val => setSelectedAssignee(parseInt(val))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map(emp => (
+                      <SelectItem key={emp.employeeId} value={emp.employeeId.toString()}>
+                        {emp.employeeName} ({emp.assignedCount})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={submitting}><XCircle className="h-4 w-4 mr-1" /> Reject</Button>
+            <Button onClick={handleApprove} disabled={submitting}><CheckCircle className="h-4 w-4 mr-1" /> Approve</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
