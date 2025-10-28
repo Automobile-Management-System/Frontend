@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { CustomerNavbar } from '../../../components/customer/navbar';
+import { Navbar } from '../../../components/common/navbar';
 import { CustomerFooter } from '../../../components/customer/footer';
 import React from 'react';
 
@@ -42,7 +42,7 @@ export default function CustomerLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <header>
-        <CustomerNavbar />
+        <Navbar />
       </header>
       <main className="flex-grow container mx-auto px-4 py-6">
         {children}
