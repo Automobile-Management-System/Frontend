@@ -154,6 +154,7 @@ import {
   FileInput,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '../../src/app/context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -163,6 +164,7 @@ interface SidebarProps {
 export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   // ✅ Ensure client-only hydration-safe render
   const [mounted, setMounted] = useState(false);
@@ -174,11 +176,11 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/admin/dashboard', badge: null },
-     { icon: User2, label: 'User Management', path: '/admin/user_management', badge: null },
-     { icon: Wrench, label: 'Service Management', path: '/admin/service_management', badge: null },
-      { icon: FileInput, label: 'Modification Requests', path: '/admin/modification_requests', badge: null },
+    { icon: User2, label: 'User Management', path: '/admin/user_management', badge: null },
+    { icon: Wrench, label: 'Service Management', path: '/admin/service_management', badge: null },
+    { icon: FileInput, label: 'Modification Requests', path: '/admin/modification_requests', badge: null },
     { icon: ChartBar, label: 'Analytics', path: '/admin/analytics', badge: null },
-    
+
   ];
 
   const handleNavigation = (path: string) => {
@@ -186,9 +188,7 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('userEmail');
-    sessionStorage.removeItem('isAuthenticated');
-    router.push('/login');
+    logout();
   };
 
   const isActive = (path: string) =>
@@ -196,9 +196,8 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`${
-        isOpen ? 'w-64' : 'w-20'
-      } bg-blue-900 text-white transition-all duration-300 flex flex-col`}
+      className={`${isOpen ? 'w-64' : 'w-20'
+        } bg-blue-900 text-white transition-all duration-300 flex flex-col`}
     >
       {/* Logo with Toggle */}
       <div className="p-4 flex items-center justify-between border-b border-blue-800">
@@ -237,13 +236,11 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
           <button
             key={item.label}
             onClick={() => handleNavigation(item.path)}
-            className={`w-full flex items-center ${
-              isOpen ? 'px-4' : 'px-6'
-            } py-3 hover:bg-blue-800 transition ${
-              isActive(item.path)
+            className={`w-full flex items-center ${isOpen ? 'px-4' : 'px-6'
+              } py-3 hover:bg-blue-800 transition ${isActive(item.path)
                 ? 'bg-blue-950 border-l-4 border-white'
                 : ''
-            }`}
+              }`}
           >
             <item.icon className="w-5 h-5 flex-shrink-0" />
             {isOpen && (
@@ -264,18 +261,16 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
       <div className="border-t border-blue-800">
         <button
           onClick={() => handleNavigation('/settings')}
-          className={`w-full flex items-center ${
-            isOpen ? 'px-4' : 'px-6'
-          } py-3 hover:bg-blue-800 transition`}
+          className={`w-full flex items-center ${isOpen ? 'px-4' : 'px-6'
+            } py-3 hover:bg-blue-800 transition`}
         >
           <Settings className="w-5 h-5 flex-shrink-0" />
           {isOpen && <span className="ml-3">Settings</span>}
         </button>
         <button
           onClick={handleLogout}
-          className={`w-full flex items-center ${
-            isOpen ? 'px-4' : 'px-6'
-          } py-3 hover:bg-blue-800 transition text-white`}
+          className={`w-full flex items-center ${isOpen ? 'px-4' : 'px-6'
+            } py-3 hover:bg-blue-800 transition text-white`}
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {isOpen && <span className="ml-3">Logout</span>}
