@@ -74,7 +74,13 @@ export function Footer() {
                 href="/about" 
                 className="flex items-center text-sm text-gray-300 hover:text-gray-50 transition-colors group"
               >
-                About Us
+                About
+              </Link>
+              <Link 
+                href="/services" 
+                className="flex items-center text-sm text-gray-300 hover:text-gray-50 transition-colors group"
+              >
+                Services
               </Link>
               <Link 
                 href="/contact" 
