@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '../../src/app/context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface SidebarProps {
 export default function EmployeeSidebar({ isOpen, onToggle }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   // ✅ Ensure client-only hydration-safe render
   const [mounted, setMounted] = useState(false);
@@ -42,10 +44,8 @@ export default function EmployeeSidebar({ isOpen, onToggle }: SidebarProps) {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('userEmail');
-    sessionStorage.removeItem('isAuthenticated');
-    router.push('/login');
-  };
+        logout();
+      };
 
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(path + '/');
