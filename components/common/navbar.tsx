@@ -51,6 +51,7 @@ export function Navbar() {
     { name: "Dashboard", href: isLoggedIn ? getDashboardByRole(user.role) : "/" },
     { name: "My Appointments", href: "/customer/appointments" },
     { name: "Modifications", href: "/customer/modifications" },
+    { name: "Payments", href: "/customer/payments" },
     { name: "About", href: "/about" }
   ];
 
@@ -130,6 +131,9 @@ export function Navbar() {
               </Link>
               <Link href="/customer/modifications" className={getLinkClassName("/customer/modifications", true)}>
                 <span>Modifications</span>
+              </Link>
+              <Link href="/customer/payments" className={getLinkClassName("/customer/payments", true)}>
+                <span>Payments</span>
               </Link>
               <Link href="/about" className={getLinkClassName("/about", true)}>
                 <span>About</span>
