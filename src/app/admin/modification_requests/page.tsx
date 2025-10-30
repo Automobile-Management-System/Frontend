@@ -7,8 +7,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  CheckCircle, XCircle, Clock, AlertCircle, User,  FileText, 
-  Hourglass
+  CheckCircle, XCircle, Clock, AlertCircle, User, FileText, 
+  Car, Calendar
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription,
@@ -61,13 +61,20 @@ export default function ModificationRequestsPage() {
   const [selectedAssignee, setSelectedAssignee] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [submitting, setSubmitting] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
 
-  // Fetch modification requests
-  const fetchRequests = async () => {
+  // Fetch modification requests with pagination
+  const fetchRequests = async (page: number = 1) => {
     try {
       setLoading(true);
-      const res = await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests`);
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests?pageNumber=${page}&pageSize=${pageSize}`);
       setRequests(res.data || []);
+      setTotalCount(res.totalCount || 0);
+      setCurrentPage(page);
     } catch (err) {
       console.error('Failed to fetch requests', err);
     } finally {
@@ -86,7 +93,7 @@ export default function ModificationRequestsPage() {
   };
 
   useEffect(() => {
-    fetchRequests();
+    fetchRequests(1);
     fetchEmployees();
   }, []);
 
@@ -111,7 +118,7 @@ export default function ModificationRequestsPage() {
         body: JSON.stringify(payload)
       });
       setDialogOpen(false);
-      await fetchRequests();
+      await fetchRequests(currentPage);
     } catch (err) {
       console.error(err);
     } finally {
@@ -131,7 +138,7 @@ export default function ModificationRequestsPage() {
         body: JSON.stringify(payload)
       });
       setDialogOpen(false);
-      await fetchRequests();
+      await fetchRequests(currentPage);
     } catch (err) {
       console.error(err);
     } finally {
@@ -144,56 +151,155 @@ export default function ModificationRequestsPage() {
       case 'pending': return { text: 'Pending', className: 'bg-yellow-100 text-yellow-800', icon: Clock };
       case 'inprogress': return { text: 'In Progress', className: 'bg-blue-100 text-blue-800', icon: AlertCircle };
       case 'approved': return { text: 'Approved', className: 'bg-green-100 text-green-800', icon: CheckCircle };
+      case 'upcoming': return { text: 'Approved', className: 'bg-green-100 text-green-800', icon: CheckCircle };
       case 'rejected': return { text: 'Rejected', className: 'bg-red-100 text-red-800', icon: XCircle };
       default: return { text: status, className: 'bg-gray-100 text-gray-800', icon: Clock };
     }
   };
 
+  const filteredRequests = requests.filter(r => filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase())
+    .sort((a, b) => {
+      // Sort pending requests first
+      const aIsPending = a.status.toLowerCase() === 'pending';
+      const bIsPending = b.status.toLowerCase() === 'pending';
+      
+      if (aIsPending && !bIsPending) return -1;
+      if (!aIsPending && bIsPending) return 1;
+      
+      // Then sort by date (most recent first)
+      return new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
+    });
+  
+  // Summary statistics (based on current page data)
+  const totalRequests = requests.length;
+  const pendingRequests = requests.filter(r => r.status.toLowerCase() === 'pending').length;
+  const rejectedRequests = requests.filter(r => r.status.toLowerCase() === 'rejected').length;
+  const upcomingRequests = requests.filter(r => r.status.toLowerCase() === 'upcoming' || r.status.toLowerCase() === 'approved').length;
 
-  const filteredRequests = requests.filter(r => filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase());
-// Summary statistics
-const totalRequests = requests.length;
-const pendingRequests = requests.filter(r => r.status.toLowerCase() === 'pending').length;
-const inProgressRequests = requests.filter(r => r.status.toLowerCase() === 'inprogress').length;
-const completedRequests = requests.filter(r => r.status.toLowerCase() === 'completed').length;
-const RejectedRequests = requests.filter(r => r.status.toLowerCase() === 'rejected').length;
-const UpcomingRequests = requests.filter(r => r.status.toLowerCase() === 'upcoming').length;
+  const stats = [
+    { title: 'Total Requests', value: totalCount, color: 'text-[#0B2E66]', bgColor: 'bg-[#F7F9FB]', icon: FileText },
+    { title: 'Pending', value: pendingRequests, color: 'text-[#F7D23B]', bgColor: 'bg-yellow-50', icon: Clock },
+    { title: 'Approved', value: upcomingRequests, color: 'text-[#33CC7A]', bgColor: 'bg-green-50', icon: CheckCircle },
+    { title: 'Rejected', value: rejectedRequests, color: 'text-[#E63946]', bgColor: 'bg-red-50', icon: XCircle },
+  ];
 
-const stats = [
-  { title: 'Total Requests', value: totalRequests, color: 'text-blue-600', bgColor: 'bg-blue-50', icon: FileText },
-  { title: 'Pending', value: pendingRequests, color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: Clock },
-    { title: 'Approved', value: UpcomingRequests, color: 'text-blue-600', bgColor: 'bg-blue-50', icon: CheckCircle },
-  { title: 'In Progress', value: inProgressRequests, color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: Hourglass },
-  { title: 'Completed', value: completedRequests, color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
-  { title: 'Rejected', value: RejectedRequests, color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle },
-];
+  // Pagination calculations
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const canGoPrevious = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-between px-6 py-4 border-t border-[#D5D9DE]">
+        <div className="text-sm text-[#1F2A3C]">
+          Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+          <span className="font-medium">
+            {Math.min(currentPage * pageSize, totalCount)}
+          </span>{' '}
+          of <span className="font-medium">{totalCount}</span> requests
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchRequests(currentPage - 1)}
+            disabled={!canGoPrevious}
+            className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Previous
+          </button>
+
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => fetchRequests(1)}
+                className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] transition-colors"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="px-2 text-[#B8BDC5]">...</span>}
+            </>
+          )}
+
+          {pages.map((page) => (
+            <button
+              key={page}
+              onClick={() => fetchRequests(page)}
+              className={`px-3 py-2 border rounded-lg transition-colors ${
+                page === currentPage
+                  ? 'bg-[#0B2E66] text-white border-[#0B2E66]'
+                  : 'border-[#D5D9DE] text-[#1F2A3C] hover:bg-[#F7F9FB]'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && <span className="px-2 text-[#B8BDC5]">...</span>}
+              <button
+                onClick={() => fetchRequests(totalPages)}
+                className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] transition-colors"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => fetchRequests(currentPage + 1)}
+            disabled={!canGoNext}
+            className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <h2 className="text-2xl font-bold">Modification Requests</h2>
-{/* Summary Stats */}
-<div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-  {stats.map(stat => {
-    const Icon = stat.icon;
-    return (
-      <Card key={stat.title}>
-        <CardHeader className="flex justify-between items-center pb-2">
-          <CardTitle className="text-sm text-muted-foreground">{stat.title}</CardTitle>
-          <div className={`h-10 w-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-            <Icon className={`h-5 w-5 ${stat.color}`} />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stat.value}</div>
-        </CardContent>
-      </Card>
-    );
-  })}
-</div>
+      <h2 className="text-3xl font-bold text-[#0B2E66] ">Modification Requests</h2>
+
+      {/* Summary Stats */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map(stat => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.title}>
+              <CardHeader className="flex flex-row justify-between items-center pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <div className={`h-10 w-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                  <Icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {/* Filter */}
       <div className="flex items-center gap-4">
-        <Label>Filter Status:</Label>
+        <Label className="font-semibold">Filter Status:</Label>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -203,40 +309,80 @@ const stats = [
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="inprogress">In Progress</SelectItem>
             <SelectItem value="upcoming">Approved</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Requests List */}
-      {loading ? <p>Loading...</p> : (
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-lg text-muted-foreground">Loading...</div>
+        </div>
+      ) : filteredRequests.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            No modification requests found.
+          </CardContent>
+        </Card>
+      ) : (
         <div className="grid gap-4">
           {filteredRequests.map(req => {
             const statusCfg = getStatusConfig(req.status);
             const StatusIcon = statusCfg.icon;
             return (
-              <Card key={req.modificationId}>
-                <CardHeader className="flex justify-between">
-                  <div>
-                    <CardTitle>{req.modificationName}</CardTitle>
-                    <CardDescription>
-                      <User className="h-4 w-4 inline" /> {req.userName} • {req.vehicleNumber} • {new Date(req.dateTime).toLocaleString()}
-                    </CardDescription>
+              <Card key={req.modificationId} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl">{req.modificationName}</CardTitle>
+                      <CardDescription className="text-sm text-gray-600">
+                        {req.description}
+                      </CardDescription>
+                    </div>
+                    <Badge className={`${statusCfg.className} flex items-center gap-1`}>
+                      <StatusIcon className="h-3 w-3" />
+                      {statusCfg.text}
+                    </Badge>
                   </div>
-                  <Badge className={statusCfg.className}>
-                    <StatusIcon className="h-4 w-4 mr-1 inline" /> {statusCfg.text}
-                  </Badge>
                 </CardHeader>
-                <CardContent>
-                  <p>{req.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    Rs. {req.amount}
+                <CardContent className="space-y-3">
+                  <div className="grid md:grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <span className="font-semibold">Customer:</span>
+                      <span className="text-gray-700">{req.userName}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Car className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <span className="font-semibold">Vehicle:</span>
+                      <span className="text-gray-700">{req.vehicleNumber}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <span className="font-semibold">Date & Time:</span>
+                      <span className="text-gray-700">{new Date(req.dateTime).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <span className="font-semibold">Assignee:</span>
+                      <span className="text-gray-700">{req.assignee}</span>
+                    </div>
                   </div>
-                  <div className="mt-2">Assignee: {req.assignee}</div>
-                  {req.status.toLowerCase() === 'pending' && (
-                    <Button className="mt-2" onClick={() => handleReview(req)}>Review</Button>
-                  )}
+                  
+                  <div className="pt-2 border-t">
+                    <div className="flex items-center justify-between">
+                      <div className="text-lg font-bold text-[#33CC7A]">
+                        Rs. {req.amount.toLocaleString()}
+                      </div>
+                      {req.status.toLowerCase() === 'pending' && (
+                        <Button onClick={() => handleReview(req)} className="bg-[#0B2E66] hover:bg-[#1E63CC]">
+                          Review Request
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -244,26 +390,49 @@ const stats = [
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {!loading && renderPagination()}
+
       {/* Review Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Review Request</DialogTitle>
+            <DialogTitle>Review Modification Request</DialogTitle>
             <DialogDescription>Approve or reject this modification request</DialogDescription>
           </DialogHeader>
           {selectedRequest && (
             <div className="space-y-4">
-              <div>
-                <p><strong>{selectedRequest.modificationName}</strong></p>
-                <p>{selectedRequest.description}</p>
-                <p>Customer: {selectedRequest.userName}</p>
-                <p>Vehicle: {selectedRequest.vehicleNumber}</p>
-                <p>Date: {new Date(selectedRequest.dateTime).toLocaleString()}</p>
-                <p>Current Assignee: {selectedRequest.assignee}</p>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div>
+                  <span className="font-semibold text-lg">{selectedRequest.modificationName}</span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  {selectedRequest.description}
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-2 text-sm">
+                  <div>
+                    <span className="font-semibold">Customer:</span> {selectedRequest.userName}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Vehicle:</span> {selectedRequest.vehicleNumber}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Date:</span> {new Date(selectedRequest.dateTime).toLocaleString()}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Assignee:</span> {selectedRequest.assignee}
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cost">Estimated Cost</Label>
-                <Input id="cost" type="number" value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)} />
+                <Label htmlFor="cost">Estimated Cost (Rs.)</Label>
+                <Input 
+                  id="cost" 
+                  type="number" 
+                  value={estimatedCost} 
+                  onChange={e => setEstimatedCost(e.target.value)}
+                  placeholder="Enter estimated cost"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assignee">Assign Employee</Label>
@@ -274,7 +443,7 @@ const stats = [
                   <SelectContent>
                     {employees.map(emp => (
                       <SelectItem key={emp.employeeId} value={emp.employeeId.toString()}>
-                        {emp.employeeName} ({emp.assignedCount})
+                        {emp.employeeName} ({emp.assignedCount} assigned)
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -283,9 +452,15 @@ const stats = [
             </div>
           )}
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={submitting}><XCircle className="h-4 w-4 mr-1" /> Reject</Button>
-            <Button onClick={handleApprove} disabled={submitting}><CheckCircle className="h-4 w-4 mr-1" /> Approve</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReject} disabled={submitting}>
+              <XCircle className="h-4 w-4 mr-1" /> Reject
+            </Button>
+            <Button onClick={handleApprove} disabled={submitting} className="bg-[#33CC7A] hover:bg-green-600">
+              <CheckCircle className="h-4 w-4 mr-1" /> Approve
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
