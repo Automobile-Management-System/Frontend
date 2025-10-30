@@ -2,6 +2,7 @@
 
 import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { useRouter } from 'next/navigation';
+import { config } from '@/lib/config';
 
 // Define the User type
 interface User {
