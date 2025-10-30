@@ -112,7 +112,7 @@ export default function ViewServicesPage() {
                     <CardDescription>{service.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="font-semibold">Price: ₹{service.basePrice.toFixed(2)}</p>
+                    <p className="font-semibold">Price: LKR {service.basePrice.toFixed(2)}</p>
                   </CardContent>
                 </Card>
               ))}
