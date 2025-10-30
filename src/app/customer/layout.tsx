@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../../../components/common/navbar';
 import { Footer } from '../../../components/common/footer';
+import { Toaster } from 'sonner';
 import React from 'react';
 
 // Simple loading component
@@ -24,9 +25,9 @@ export default function CustomerLayout({
 
   useEffect(() => {
     if (isLoading) {
-      return; // Wait for session check
+       return; // Wait for session check
     }
-
+     
     // If not loading and no user, redirect to login
     if (!user) {
       router.push('/login');
@@ -41,6 +42,9 @@ export default function CustomerLayout({
   // User is authenticated
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Sonner Toaster */}
+      <Toaster position="top-right" richColors/>
+
       <header>
         <Navbar />
       </header>
