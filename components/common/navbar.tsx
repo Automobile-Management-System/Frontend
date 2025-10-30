@@ -217,7 +217,7 @@ export function Navbar() {
                   <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem className="focus:bg-slate-700 focus:text-white">
                     <User className="mr-2 h-4 w-4" />
-                    <Link href="/customer/profile" className="w-full">
+                    <Link href={`/${user.role.toLowerCase()}/profile`} className="w-full">
                       Profile Settings
                     </Link>
                   </DropdownMenuItem>
@@ -293,7 +293,7 @@ export function Navbar() {
                   </div>
                 </div>
                 <Link
-                  href="/customer/profile"
+                  href={`/${user.role.toLowerCase()}/profile`}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/10 rounded-lg"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
