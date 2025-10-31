@@ -153,6 +153,7 @@ import {
   User2,
   FileInput,
   CalendarDays,
+  UserCircle,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../src/app/context/AuthContext';
@@ -177,7 +178,7 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/admin/dashboard', badge: null },
-
+    { icon: UserCircle, label: 'Profile', path: '/admin/profile', badge: null },
      { icon: User2, label: 'User Management', path: '/admin/user_management', badge: null },
      { icon: Wrench, label: 'Service Management', path: '/admin/service_management', badge: null },
           { icon: CalendarDays, label: 'Appointments', path: '/admin/appointment_Management', badge: null },
