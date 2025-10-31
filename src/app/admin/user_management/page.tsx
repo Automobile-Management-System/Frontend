@@ -52,7 +52,7 @@ export default function UserManagement() {
       queryParams.append("pageNumber", pageNumber.toString());
       queryParams.append("pageSize", "10");
 
-      const res = await fetch(`${BASE_URL}/all?${queryParams.toString()}`);
+      const res = await fetch(`${BASE_URL}/all?${queryParams.toString()}`,{ credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
 
@@ -73,10 +73,10 @@ export default function UserManagement() {
   const fetchCounts = async () => {
     try {
       const [totalRes, activeRes, customersRes, employeesRes] = await Promise.all([
-        fetch(`${BASE_URL}/count/total`),
-        fetch(`${BASE_URL}/count/active`),
-        fetch(`${BASE_URL}/count/active-customers`),
-        fetch(`${BASE_URL}/count/active-employees`),
+        fetch(`${BASE_URL}/count/total`,{ credentials: "include" }),
+        fetch(`${BASE_URL}/count/active`, { credentials: "include" }),
+        fetch(`${BASE_URL}/count/active-customers`, { credentials: "include" }),
+        fetch(`${BASE_URL}/count/active-employees`, { credentials: "include" }),
       ]);
 
       if (!totalRes.ok || !activeRes.ok || !customersRes.ok || !employeesRes.ok)
@@ -113,6 +113,7 @@ export default function UserManagement() {
         const res = await fetch(`${BASE_URL}/${editingUser.userId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(data),
         });
         if (!res.ok) throw new Error("Failed to update user");
@@ -122,6 +123,7 @@ export default function UserManagement() {
         const res = await fetch(`${BASE_URL}/add-employee`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(data),
         });
         if (!res.ok) throw new Error("Failed to add user");
@@ -147,7 +149,7 @@ export default function UserManagement() {
   const handleToggleStatus = async (user: UserAccount) => {
     try {
       const url = `${BASE_URL}/${user.status === "Active" ? "deactivate" : "activate"}/${user.userId}`;
-      const res = await fetch(url, { method: "PUT" });
+      const res = await fetch(url, { method: "PUT", credentials: "include" });
       if (!res.ok) throw new Error("Failed to update status");
 
       toast.success(`User ${user.status === "Active" ? "deactivated" : "activated"} successfully`);
@@ -161,7 +163,7 @@ export default function UserManagement() {
 
   const handleViewUser = async (user: UserAccount) => {
     try {
-      const res = await fetch(`${BASE_URL}/${user.userId}`);
+      const res = await fetch(`${BASE_URL}/${user.userId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch user");
 
       const data: UserAccount = await res.json();
