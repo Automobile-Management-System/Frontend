@@ -110,7 +110,7 @@ export default function CustomerDashboard() {
 
   const handleAddVehicle = async (vehicleData: any) => {
     try {
-      const res = await fetch(`${API_BASE}/vehicles`, {
+      const res = await fetch(`http://localhost:5001/api/CustomerVehicle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
