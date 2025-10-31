@@ -1,15 +1,17 @@
 
 export interface ProfileData {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string;  // Changed from 'phone' to 'phoneNumber' to match backend
-  address?: string;
-  profilePicture?: string;  // Added to match backend
-  dateJoined: string;
-  role: 'Admin' | 'Employee' | 'Customer';
-  
+  userId: number;        // Maps to UserId in backend
+  firstName: string;     // Maps to FirstName in backend
+  lastName: string;      // Maps to LastName in backend
+  email: string;         // Maps to Email in backend
+  phoneNumber?: string;  // Maps to PhoneNumber in backend
+  address?: string;      // Maps to Address in backend
+  profilePicture?: string; // Maps to ProfilePicture in backend
+  status: string;        // Maps to Status in backend
+  // Add computed fields for compatibility
+  id?: number;           // Alias for userId
+  dateJoined?: string;   // May not be available from ProfileManagement API
+  role?: 'Admin' | 'Employee' | 'Customer'; // May need to get from Auth context
 }
 
 export interface ProfileUpdateDto {
@@ -29,14 +31,16 @@ export interface ApiResponse<T> {
 }
 
 class ProfileApiService {
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
   /**
    * Get current user's profile from the backend
    */
   async getCurrentUserProfile(): Promise<ApiResponse<ProfileData>> {
     try {
-      const response = await fetch(`${this.baseUrl}/ProfileManagement`, {
+      console.log('Fetching profile from:', `${this.baseUrl}/api/ProfileManagement`);
+      
+      const response = await fetch(`${this.baseUrl}/api/ProfileManagement`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -44,17 +48,27 @@ class ProfileApiService {
         credentials: 'include', // Include cookies for authentication
       });
 
+      console.log('Profile API Response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Profile API Error Response:', errorText);
+        
         if (response.status === 401) {
-          throw new Error('Unauthorized access');
+          throw new Error('Unauthorized access - Please log in again');
         }
         if (response.status === 404) {
-          throw new Error('Profile not found');
+          throw new Error('Profile not found - User may not exist in ProfileManagement system');
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.status === 500) {
+          throw new Error('Server error - Please try again later');
+        }
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Profile data received:', data);
+      
       return {
         success: true,
         data: data
@@ -73,7 +87,9 @@ class ProfileApiService {
    */
   async updateCurrentUserProfile(updateData: ProfileUpdateDto): Promise<ApiResponse<void>> {
     try {
-      const response = await fetch(`${this.baseUrl}/ProfileManagement`, {
+      console.log('Updating profile with data:', updateData);
+      
+      const response = await fetch(`${this.baseUrl}/api/ProfileManagement`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -82,18 +98,29 @@ class ProfileApiService {
         body: JSON.stringify(updateData),
       });
 
+      console.log('Update Profile API Response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Update Profile API Error Response:', errorText);
+        
         if (response.status === 401) {
-          throw new Error('Unauthorized access');
+          throw new Error('Unauthorized access - Please log in again');
         }
         if (response.status === 400) {
-          // Try to get error details from response
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Invalid data provided');
+          // Try to parse error details from response
+          try {
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.error || 'Invalid data provided');
+          } catch {
+            throw new Error(errorText || 'Invalid data provided');
+          }
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
+      console.log('Profile updated successfully');
+      
       return {
         success: true
       };
@@ -144,10 +171,20 @@ export const profileApiService = new ProfileApiService();
 
 // Helper function to handle API errors
 export const handleApiError = (error: string) => {
-  if (error.includes('Unauthorized')) {
-    // Redirect to login or show authentication error
-    window.location.href = '/login';
-  }
-  // You can add toast notifications here if you have a toast system
   console.error('API Error:', error);
+  
+  if (error.includes('Unauthorized') || error.includes('Please log in again')) {
+    // Clear any cached user data and redirect to login
+    console.warn('Authentication failed, redirecting to login...');
+    // Don't immediately redirect, let the component handle it
+    return;
+  }
+  
+  if (error.includes('Profile not found')) {
+    console.warn('Profile not found - this might be a new user or the ProfileManagement system is not properly set up');
+  }
+  
+  if (error.includes('Server error')) {
+    console.error('Backend server error occurred');
+  }
 };
