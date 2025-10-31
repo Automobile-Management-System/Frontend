@@ -37,9 +37,14 @@ export interface AvailabilityResponse {
 }
 
 export interface CreateAppointmentDto {
-  dateTime: string;
+  // Backend expects a date-only string under the key `appointmentDateTime`
+  // Example: "2025-11-01"
+  appointmentDateTime: string;
+  // Backend expects a slot index (0-based):
+  // 0 -> 08:00-10:00, 1 -> 10:00-12:00, 2 -> 13:00-15:00, 3 -> 15:00-17:00
+  slotsTime: number;
   serviceIds: number[];
-  vehicleId: number | string; // Support both number and string as backend might expect different formats
+  vehicleId: number;
 }
 
 export interface AppointmentResponse {

@@ -129,8 +129,14 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     setError("");
 
     try {
-      const [startTime] = selectedTimeSlot.split("-");
-      const dateTime = `${selectedDate}T${startTime}:00`;
+      // Map selected time slot to backend slot index (0-based)
+      const slotIndex = timeSlots.findIndex(
+        (slot) => slot.value === selectedTimeSlot
+      );
+      if (slotIndex === -1) {
+        setError("Invalid time slot selected");
+        return;
+      }
 
       // Find the selected vehicle's ID
       const selectedVehicleObj = vehicles.find((v) => {
@@ -178,7 +184,8 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       }
 
       const dto: CreateAppointmentDto = {
-        dateTime,
+        appointmentDateTime: selectedDate, // date only; backend computes time from slotsTime
+        slotsTime: slotIndex,
         serviceIds: selectedServices,
         vehicleId: finalVehicleId,
       };
