@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  UserCircle,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../src/app/context/AuthContext';
@@ -35,6 +36,7 @@ export default function EmployeeSidebar({ isOpen, onToggle }: SidebarProps) {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/employee/dashboard', badge: null },
+    { icon: UserCircle, label: 'Profile', path: '/employee/profile', badge: null },
     { icon: Package, label: 'Service Progress', path: '/employee/service_progress', badge: null },
     { icon: ShoppingCart, label: 'Appointments', path: '/employee/appointments', badge: null }
   ];
