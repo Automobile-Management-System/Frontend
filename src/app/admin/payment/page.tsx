@@ -11,7 +11,7 @@ import {
   Calendar,
   User,
   RefreshCw,
-  Download, // Added for the invoice button
+  Download,
 } from 'lucide-react';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
@@ -32,41 +32,19 @@ import {
 } from '../../../components/ui/table';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import ReportDownloadButton from '../../../../components/admin/ReportDownloadButton'; // This component is kept as-is
+import ReportDownloadButton from '../../../../components/admin/ReportDownloadButton';
 
-// 1. Interface matching the API response (no changes)
-interface ApiPayment {
-  paymentId: number;
-  amount: number;
-  status: string;
-  paymentMethod: string;
-  paymentDateTime: string;
-  invoiceLink: string | null;
-  appointmentId: number;
-  customerId: number;
-  customerFirstName: string;
-  customerLastName: string;
-  customerEmail: string;
-  customerPhoneNumber: string | null;
-  appointmentType: string;
-  serviceNames: string[];
-  modificationTitles: string[];
-}
+// Import the new types and API service
+import {
+  AdminPayment,
+  PaymentStatus,
+  PaymentMethod,
+  GlobalPaymentStats,
+  PaymentQueryParameters,
+} from '@/types/adminPayment'; // Adjust path as needed
+import { adminPaymentAPI } from '@/services/adminPaymentAPI'; // Adjust path as needed
 
-// Enum for status (no changes)
-enum PaymentStatus {
-  Pending = 'Pending',
-  Completed = 'Completed',
-  Failed = 'Failed',
-  Refunded = 'Refunded', // Added Refunded to match your filter
-}
-
-// API URL (centralized for easy changes)
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
-const PAGE_SIZE = 10; // Match your backend's DefaultPageSize
-
-// 2. NEW: Debounce hook
+// Debounce hook
 function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -81,59 +59,42 @@ function useDebounce(value: string, delay: number) {
 }
 
 export default function PaymentsView() {
-  // 3. State for payments, loading, and errors
-  const [payments, setPayments] = useState<ApiPayment[]>([]);
+  // State for payments, loading, and errors
+  const [payments, setPayments] = useState<AdminPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 4. NEW: State for Global Stats
-  const [globalStats, setGlobalStats] = useState({
+  // State for Global Stats
+  const [globalStats, setGlobalStats] = useState<GlobalPaymentStats>({
     totalRevenue: 0,
     pendingCount: 0,
     completedCount: 0,
     failedCount: 0,
   });
 
-  // 5. State for filters
+  // State for filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMethod, setFilterMethod] = useState<string>('all');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms delay
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // 6. Pagination state
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPayments, setTotalPayments] = useState(0);
-  const totalPages = Math.ceil(totalPayments / PAGE_SIZE);
+  const totalPages = Math.ceil(totalPayments / 10); // Use hardcoded page size or import
 
-  // 7. NEW: Data fetching function for Global Stats
+  // Data fetching function for Global Stats
   const fetchStats = useCallback(async () => {
     try {
-      const [revenueRes, pendingRes, completedRes, failedRes] =
-        await Promise.all([
-          fetch(`${API_BASE_URL}/admin/payments/revenue`),
-          fetch(`${API_BASE_URL}/admin/payments/count/pending`),
-          fetch(`${API_BASE_URL}/admin/payments/count/completed`),
-          fetch(`${API_BASE_URL}/admin/payments/count/failed`),
-        ]);
-
-      const revenueData = await revenueRes.json();
-      const pendingData = await pendingRes.json();
-      const completedData = await completedRes.json();
-      const failedData = await failedRes.json();
-
-      setGlobalStats({
-        totalRevenue: revenueData.totalRevenue || 0,
-        pendingCount: pendingData.count || 0,
-        completedCount: completedData.count || 0,
-        failedCount: failedData.count || 0,
-      });
+      const stats = await adminPaymentAPI.getGlobalStats();
+      setGlobalStats(stats);
     } catch (e: any) {
       console.error('Failed to fetch stats:', e.message);
-      toast.error('Failed to refresh dashboard stats.');
+      toast.error(`Failed to refresh dashboard stats: ${e.message}`);
     }
   }, []);
 
-  // 8. MODIFIED: Data fetching function for Payments (with server-side filters)
+  // Data fetching function for Payments
   const fetchPayments = useCallback(
     async (
       page: number,
@@ -144,31 +105,21 @@ export default function PaymentsView() {
       setIsLoading(true);
       setError(null);
       try {
-        // Build query parameters
-        const params = new URLSearchParams();
-        params.append('pageNumber', page.toString());
-        if (search) params.append('search', search);
-        if (status !== 'all') params.append('status', status);
-        if (method !== 'all') params.append('paymentMethod', method);
-
-        const response = await fetch(
-          `${API_BASE_URL}/admin/payments?${params.toString()}`
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const totalCountHeader = response.headers.get('X-Total-Count');
-        setTotalPayments(totalCountHeader ? parseInt(totalCountHeader, 10) : 0);
-
-        const data: ApiPayment[] = await response.json();
-        setPayments(data);
+        const params: PaymentQueryParameters = {
+          pageNumber: page,
+          search: search || undefined,
+          status: status !== 'all' ? status : undefined,
+          paymentMethod: method !== 'all' ? method : undefined,
+        };
         
-        // If we fetched page 1, reset to it
+        const { payments, totalCount } = await adminPaymentAPI.getPayments(params);
+
+        setTotalPayments(totalCount);
+        setPayments(payments);
+
         if (page === 1 && currentPage !== 1) {
           setCurrentPage(1);
         }
-
       } catch (e: any) {
         setError(`Failed to fetch payments: ${e.message}`);
         toast.error(`Failed to fetch payments: ${e.message}`);
@@ -176,12 +127,11 @@ export default function PaymentsView() {
         setIsLoading(false);
       }
     },
-    [currentPage] // Only re-create if currentPage changes
+    [currentPage]
   );
 
-  // 9. MODIFIED: useEffect to fetch data on mount and on filter/page change
+  // useEffect to fetch data on mount and on filter/page change
   useEffect(() => {
-    // Fetch payments when filters, debounced search, or page changes
     fetchPayments(
       currentPage,
       debouncedSearchTerm,
@@ -195,17 +145,15 @@ export default function PaymentsView() {
     filterStatus,
     filterMethod,
   ]);
-  
-  // 10. NEW: useEffect to fetch stats on mount
+
+  // useEffect to fetch stats on mount
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  // 11. MODIFIED: Update handler now re-fetches stats
+  // Update handler
   const handleStatusChange = async (paymentId: number, newStatus: string) => {
     const originalPayments = [...payments];
-    const payment = originalPayments.find((p) => p.paymentId === paymentId);
-    if (!payment) return;
 
     // Optimistic UI update
     setPayments((prevPayments) =>
@@ -214,38 +162,32 @@ export default function PaymentsView() {
       )
     );
 
-    const promise = fetch(`${API_BASE_URL}/admin/payments/${paymentId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+    // Use the API service
+    const promise = adminPaymentAPI.updatePaymentStatus(paymentId, {
+      status: newStatus,
     });
 
     toast.promise(promise, {
       loading: 'Updating status...',
-      success: (response) => {
-        if (!response.ok) {
-          throw new Error('Failed to update status on server.');
-        }
-        // --- RE-FETCH DATA ON SUCCESS ---
-        // Re-fetch current page (to get new invoice link if created)
+      success: () => {
+        // Re-fetch data on success
         fetchPayments(
           currentPage,
           debouncedSearchTerm,
           filterStatus,
           filterMethod
         );
-        // Re-fetch global stats (counts and revenue will change)
         fetchStats();
         return 'Payment status updated successfully!';
       },
-      error: (err) => {
-        setPayments(originalPayments); // Revert optimistic update
+      error: (err: Error) => {
+        setPayments(originalPayments); // Revert
         return `Error: ${err.message}`;
       },
     });
   };
 
-  // 12. Helper functions (no changes)
+  // Helper functions
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'Completed':
@@ -271,22 +213,20 @@ export default function PaymentsView() {
 
   const getPaymentMethodLabel = (method: string) => {
     switch (method) {
-      case 'CreditCard':
+      case PaymentMethod.CreditCard:
         return 'Credit Card';
-      case 'DebitCard':
+      case PaymentMethod.DebitCard:
         return 'Debit Card';
-      case 'BankTransfer':
+      case PaymentMethod.BankTransfer:
         return 'Bank Transfer';
-      case 'Cash':
+      case PaymentMethod.Cash:
         return 'Cash';
       default:
         return method;
     }
   };
 
-  // 13. REMOVED: All client-side filtering logic (`filteredPayments`)
-
-  // 14. MODIFIED: Stats array now uses globalStats state
+  // Stats array
   const stats = [
     {
       title: 'Total Revenue',
@@ -314,7 +254,7 @@ export default function PaymentsView() {
     },
   ];
 
-  // Main component render
+  // Main component render (JSX remains the same)
   return (
     <div className="min-h-screen bg-[#F7F9FB] p-6">
       <div className="space-y-6">
@@ -328,7 +268,7 @@ export default function PaymentsView() {
           </p>
         </div>
 
-        {/* Stats Cards (Now uses global data) */}
+        {/* Stats Cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -355,18 +295,21 @@ export default function PaymentsView() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h2 className="text-xl font-semibold text-[#0B2E66]">Filters</h2>
-
-            {/* NOTE: This button component is from your original code.
-                Ensure the endpoint '/admin/payments/report' exists and returns a file.
-                This API endpoint was not in the provided documentation. */}
             <ReportDownloadButton
               endpoint="/admin/payments/report"
               fileName="Payments_Report.pdf"
               buttonLabel="Export Report"
               className="flex items-center gap-2 bg-[#0B2E66] hover:bg-[#1E63CC] text-white px-4 py-2 rounded-lg transition-colors"
+              // Pass current filters to the report button
+              params={{
+                search: debouncedSearchTerm || undefined,
+                status: filterStatus !== 'all' ? filterStatus : undefined,
+                paymentMethod: filterMethod !== 'all' ? filterMethod : undefined,
+              }}
             />
           </div>
           <div className="grid sm:grid-cols-3 gap-4 mt-4">
+            {/* Search Input */}
             <div className="space-y-2">
               <Label
                 htmlFor="search"
@@ -378,7 +321,7 @@ export default function PaymentsView() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder="        Search by customer, email..."
+                  placeholder="Search by customer, email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 w-full px-3 py-2 border border-[#D5D9DE] rounded-lg focus:ring-2 focus:ring-[#1E63CC] focus:border-transparent"
@@ -386,6 +329,7 @@ export default function PaymentsView() {
               </div>
             </div>
 
+            {/* Status Filter */}
             <div className="space-y-2">
               <Label
                 htmlFor="status"
@@ -397,7 +341,7 @@ export default function PaymentsView() {
                 value={filterStatus}
                 onValueChange={(value) => {
                   setFilterStatus(value);
-                  setCurrentPage(1); // Reset to page 1 on filter change
+                  setCurrentPage(1);
                 }}
               >
                 <SelectTrigger
@@ -408,14 +352,16 @@ export default function PaymentsView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Failed">Failed</SelectItem>
-                  <SelectItem value="Refunded">Refunded</SelectItem>
+                  {Object.values(PaymentStatus).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Method Filter */}
             <div className="space-y-2">
               <Label
                 htmlFor="method"
@@ -427,7 +373,7 @@ export default function PaymentsView() {
                 value={filterMethod}
                 onValueChange={(value) => {
                   setFilterMethod(value);
-                  setCurrentPage(1); // Reset to page 1 on filter change
+                  setCurrentPage(1);
                 }}
               >
                 <SelectTrigger
@@ -438,17 +384,18 @@ export default function PaymentsView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
-                  <SelectItem value="CreditCard">Credit Card</SelectItem>
-                  <SelectItem value="DebitCard">Debit Card</SelectItem>
-                  <SelectItem value="BankTransfer">Bank Transfer</SelectItem>
-                  <SelectItem value="Cash">Cash</SelectItem>
+                  {Object.values(PaymentMethod).map((method) => (
+                    <SelectItem key={method} value={method}>
+                      {getPaymentMethodLabel(method)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
         </div>
 
-        {/* Payments Table (Now uses `payments` directly) */}
+        {/* Payments Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <Table className="w-full">
@@ -544,8 +491,6 @@ export default function PaymentsView() {
                           {getPaymentMethodLabel(payment.paymentMethod)}
                         </div>
                       </TableCell>
-
-                      {/* Interactive Status Column */}
                       <TableCell className="px-6 py-4">
                         <Select
                           value={payment.status}
@@ -574,7 +519,6 @@ export default function PaymentsView() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-
                       <TableCell className="px-6 py-4">
                         <div className="flex items-center gap-1 text-sm text-[#1F2A3C]">
                           <Calendar className="h-4 w-4 text-[#B8BDC5]" />
@@ -583,8 +527,6 @@ export default function PaymentsView() {
                           ).toLocaleDateString()}
                         </div>
                       </TableCell>
-                      
-                      {/* --- MODIFIED INVOICE BUTTON --- */}
                       <TableCell className="px-6 py-4 text-center">
                         {payment.invoiceLink ? (
                           <Button asChild variant="outline" size="sm">
@@ -609,7 +551,7 @@ export default function PaymentsView() {
             </Table>
           </div>
 
-          {/* Pagination Controls (No changes) */}
+          {/* Pagination Controls */}
           <div className="flex items-center justify-end space-x-2 p-4 border-t border-[#D5D9DE]">
             <span className="text-sm text-[#1F2A3C]">
               Page {currentPage} of {totalPages > 0 ? totalPages : 1}
