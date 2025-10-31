@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
@@ -39,7 +40,7 @@ interface ModificationRequest {
 interface AssignedEmployee {
   employeeId: number;
   employeeName: string;
-  assignedCount: number;
+  assignedCount: number; // Now will be daily count
 }
 
 // Fetch helpers
@@ -52,7 +53,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 };
 
 export default function ModificationRequestsPage() {
-  const [requests, setRequests] = useState<ModificationRequest[]>([]);
+  const [allData, setAllData] = useState<ModificationRequest[]>([]);
   const [employees, setEmployees] = useState<AssignedEmployee[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<ModificationRequest | null>(null);
@@ -61,47 +62,78 @@ export default function ModificationRequestsPage() {
   const [selectedAssignee, setSelectedAssignee] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [submitting, setSubmitting] = useState(false);
-  
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
 
-  // Fetch modification requests with pagination
-  const fetchRequests = async (page: number = 1) => {
+  // Fetch ALL requests (for sorting + stats)
+  const fetchAllData = async () => {
     try {
       setLoading(true);
-      const res = await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests?pageNumber=${page}&pageSize=${pageSize}`);
-      setRequests(res.data || []);
+      const res = await fetchWithAuth(
+        `${API_BASE_URL}/admin/modification-requests?pageNumber=1&pageSize=1000`
+      );
+      setAllData(res.data || []);
       setTotalCount(res.totalCount || 0);
-      setCurrentPage(page);
     } catch (err) {
-      console.error('Failed to fetch requests', err);
+      console.error('Failed to fetch all data', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch assigned appointments for employees
+  // Fetch base employees list (without counts - counts fetched per date)
   const fetchEmployees = async () => {
     try {
+      // Assuming you have an endpoint for all employees; adjust if needed
+      // For now, using the same endpoint but ignoring counts initially
       const res = await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests/assigned-appointments`);
-      setEmployees(res || []);
+      // Set with assignedCount: 0 initially
+      setEmployees((res || []).map((emp: any) => ({ ...emp, assignedCount: 0 })));
     } catch (err) {
       console.error('Failed to fetch employees', err);
     }
   };
 
-  useEffect(() => {
-    fetchRequests(1);
-    fetchEmployees();
-  }, []);
+  // Fetch daily assignments count for each employee (for a specific date)
+  const fetchDailyEmployeeCounts = async (date: string) => {
+    if (!employees.length) return;
+    try {
+      const employeesWithDailyCount = await Promise.all(
+        employees.map(async (emp) => {
+          const assignments = await fetchWithAuth(
+            `${API_BASE_URL}/admin/service-appointments/employee-assignments?employeeId=${emp.employeeId}&date=${encodeURIComponent(date)}`
+          );
+          return {
+            ...emp,
+            assignedCount: assignments.length || 0
+          };
+        })
+      );
+      setEmployees(employeesWithDailyCount);
+    } catch (err) {
+      console.error('Failed to fetch daily employee counts', err);
+      // Fallback: keep counts as 0
+    }
+  };
 
-  const handleReview = (request: ModificationRequest) => {
+  useEffect(() => {
+    fetchAllData();
+    fetchEmployees();
+  }, [filterStatus]);
+
+  const handleReview = async (request: ModificationRequest) => {
     setSelectedRequest(request);
     setEstimatedCost(request.amount.toString());
     setSelectedAssignee(request.assignee === 'Unassigned' ? null : employees.find(e => e.employeeName === request.assignee)?.employeeId || null);
     setDialogOpen(true);
+    // Fetch daily counts for this request's date
+    const requestDate = new Date(request.dateTime).toISOString().split('T')[0]; // YYYY-MM-DD format
+    await fetchDailyEmployeeCounts(requestDate);
   };
 
   const handleApprove = async () => {
@@ -117,10 +149,11 @@ export default function ModificationRequestsPage() {
         method: 'PUT',
         body: JSON.stringify(payload)
       });
+      setToast({ type: 'success', message: 'Request approved successfully!' });
       setDialogOpen(false);
-      await fetchRequests(currentPage);
-    } catch (err) {
-      console.error(err);
+      await fetchAllData();
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Failed to approve request.' });
     } finally {
       setSubmitting(false);
     }
@@ -128,19 +161,24 @@ export default function ModificationRequestsPage() {
 
   const handleReject = async () => {
     if (!selectedRequest) return;
+    setShowRejectConfirm(true);
+  };
+
+  const confirmReject = async () => {
+    if (!selectedRequest) return;
     try {
       setSubmitting(true);
-      const payload = {
-        action: 'reject'
-      };
+      const payload = { action: 'reject' };
       await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests/${selectedRequest.modificationId}/review`, {
         method: 'PUT',
         body: JSON.stringify(payload)
       });
+      setToast({ type: 'success', message: 'Request rejected.' });
       setDialogOpen(false);
-      await fetchRequests(currentPage);
-    } catch (err) {
-      console.error(err);
+      setShowRejectConfirm(false);
+      await fetchAllData();
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Failed to reject request.' });
     } finally {
       setSubmitting(false);
     }
@@ -157,36 +195,42 @@ export default function ModificationRequestsPage() {
     }
   };
 
-  const filteredRequests = requests.filter(r => filterStatus === 'all' || r.status.toLowerCase() === filterStatus.toLowerCase())
-    .sort((a, b) => {
-      // Sort pending requests first
-      const aIsPending = a.status.toLowerCase() === 'pending';
-      const bIsPending = b.status.toLowerCase() === 'pending';
-      
-      if (aIsPending && !bIsPending) return -1;
-      if (!aIsPending && bIsPending) return 1;
-      
-      // Then sort by date (most recent first)
-      return new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
-    });
-  
-  // Summary statistics (based on current page data)
-  const totalRequests = requests.length;
-  const pendingRequests = requests.filter(r => r.status.toLowerCase() === 'pending').length;
-  const rejectedRequests = requests.filter(r => r.status.toLowerCase() === 'rejected').length;
-  const upcomingRequests = requests.filter(r => r.status.toLowerCase() === 'upcoming' || r.status.toLowerCase() === 'approved').length;
+  // SORT + FILTER + PAGINATION
+  const sortedAll = [...allData].sort((a, b) => {
+    const aPending = a.status.toLowerCase() === 'pending';
+    const bPending = b.status.toLowerCase() === 'pending';
+
+    if (aPending && !bPending) return -1;
+    if (!aPending && bPending) return 1;
+
+    return new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
+  });
+
+  const filteredAll = filterStatus === 'all'
+    ? sortedAll
+    : sortedAll.filter(r => r.status.toLowerCase() === filterStatus.toLowerCase());
+
+  const startIdx = (currentPage - 1) * pageSize;
+  const endIdx = startIdx + pageSize;
+  const requestsToShow = filteredAll.slice(startIdx, endIdx);
+
+  // Stats from full dataset
+  const pendingRequests = allData.filter(r => r.status.toLowerCase() === 'pending').length;
+  const approvedRequests = allData.filter(r => ['approved', 'upcoming'].includes(r.status.toLowerCase())).length;
+  const rejectedRequests = allData.filter(r => r.status.toLowerCase() === 'rejected').length;
 
   const stats = [
     { title: 'Total Requests', value: totalCount, color: 'text-[#0B2E66]', bgColor: 'bg-[#F7F9FB]', icon: FileText },
     { title: 'Pending', value: pendingRequests, color: 'text-[#F7D23B]', bgColor: 'bg-yellow-50', icon: Clock },
-    { title: 'Approved', value: upcomingRequests, color: 'text-[#33CC7A]', bgColor: 'bg-green-50', icon: CheckCircle },
+    { title: 'Approved', value: approvedRequests, color: 'text-[#33CC7A]', bgColor: 'bg-green-50', icon: CheckCircle },
     { title: 'Rejected', value: rejectedRequests, color: 'text-[#E63946]', bgColor: 'bg-red-50', icon: XCircle },
   ];
 
-  // Pagination calculations
-  const totalPages = Math.ceil(totalCount / pageSize);
-  const canGoPrevious = currentPage > 1;
-  const canGoNext = currentPage < totalPages;
+  const totalPages = Math.ceil(filteredAll.length / pageSize);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const renderPagination = () => {
     if (totalPages <= 1) return null;
@@ -207,17 +251,17 @@ export default function ModificationRequestsPage() {
     return (
       <div className="flex items-center justify-between px-6 py-4 border-t border-[#D5D9DE]">
         <div className="text-sm text-[#1F2A3C]">
-          Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+          Showing <span className="font-medium">{startIdx + 1}</span> to{' '}
           <span className="font-medium">
-            {Math.min(currentPage * pageSize, totalCount)}
+            {Math.min(endIdx, filteredAll.length)}
           </span>{' '}
-          of <span className="font-medium">{totalCount}</span> requests
+          of <span className="font-medium">{filteredAll.length}</span> requests
         </div>
         
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fetchRequests(currentPage - 1)}
-            disabled={!canGoPrevious}
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
             className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Previous
@@ -226,7 +270,7 @@ export default function ModificationRequestsPage() {
           {startPage > 1 && (
             <>
               <button
-                onClick={() => fetchRequests(1)}
+                onClick={() => goToPage(1)}
                 className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] transition-colors"
               >
                 1
@@ -238,7 +282,7 @@ export default function ModificationRequestsPage() {
           {pages.map((page) => (
             <button
               key={page}
-              onClick={() => fetchRequests(page)}
+              onClick={() => goToPage(page)}
               className={`px-3 py-2 border rounded-lg transition-colors ${
                 page === currentPage
                   ? 'bg-[#0B2E66] text-white border-[#0B2E66]'
@@ -253,7 +297,7 @@ export default function ModificationRequestsPage() {
             <>
               {endPage < totalPages - 1 && <span className="px-2 text-[#B8BDC5]">...</span>}
               <button
-                onClick={() => fetchRequests(totalPages)}
+                onClick={() => goToPage(totalPages)}
                 className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] transition-colors"
               >
                 {totalPages}
@@ -262,8 +306,8 @@ export default function ModificationRequestsPage() {
           )}
 
           <button
-            onClick={() => fetchRequests(currentPage + 1)}
-            disabled={!canGoNext}
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
             className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
@@ -273,9 +317,17 @@ export default function ModificationRequestsPage() {
     );
   };
 
+  // Auto-hide toast
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <h2 className="text-3xl font-bold text-[#0B2E66] ">Modification Requests</h2>
+      <h2 className="text-3xl font-bold text-[#0B2E66]">Modification Requests</h2>
 
       {/* Summary Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -320,7 +372,7 @@ export default function ModificationRequestsPage() {
         <div className="flex justify-center items-center py-12">
           <div className="text-lg text-muted-foreground">Loading...</div>
         </div>
-      ) : filteredRequests.length === 0 ? (
+      ) : requestsToShow.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             No modification requests found.
@@ -328,7 +380,7 @@ export default function ModificationRequestsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredRequests.map(req => {
+          {requestsToShow.map(req => {
             const statusCfg = getStatusConfig(req.status);
             const StatusIcon = statusCfg.icon;
             return (
@@ -458,12 +510,47 @@ export default function ModificationRequestsPage() {
             <Button variant="destructive" onClick={handleReject} disabled={submitting}>
               <XCircle className="h-4 w-4 mr-1" /> Reject
             </Button>
-            <Button onClick={handleApprove} disabled={submitting} className="bg-[#33CC7A] hover:bg-green-600">
-              <CheckCircle className="h-4 w-4 mr-1" /> Approve
+           <Button 
+  onClick={handleApprove} 
+  disabled={submitting || !selectedAssignee} 
+  className="bg-[#33CC7A] hover:bg-green-600 disabled:opacity-50"
+>
+  <CheckCircle className="h-4 w-4 mr-1" /> Approve
+</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Confirmation Dialog */}
+      <Dialog open={showRejectConfirm} onOpenChange={setShowRejectConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Rejection</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reject this modification request? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectConfirm(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmReject} disabled={submitting}>
+              Yes, Reject
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Toast Alert */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <Alert className={toast.type === 'success' ? 'bg-[#33CC7A] text-white border-[#33CC7A]' : 'bg-[#E63946] text-white border-[#E63946]'}>
+            <AlertDescription className="font-semibold text-white text-base">
+              {toast.message}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }

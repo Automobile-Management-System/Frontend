@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { User, Calendar, Car, Wrench, Clock, CheckCircle, AlertCircle, Loader, Clock1 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert'; // <-- Added
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
@@ -65,6 +66,9 @@ export default function ServiceAppointmentsPage() {
     inProgress: 0,
     completed: 0
   });
+
+  // Toast state
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const fetchAppointments = async (page = 1) => {
     try {
@@ -189,11 +193,15 @@ export default function ServiceAppointmentsPage() {
           body: JSON.stringify({ employeeId: parseInt(selectedEmployeeId) }),
         }
       );
+      setToast({ type: 'success', message: 'Employee assigned successfully!' }); // Success toast
       setDialogOpen(false);
       await fetchAppointments(pageNumber);
-      await fetchStats(); // Refresh stats after assignment
-    } catch (err) {
-      console.error('Error assigning employee', err);
+      await fetchStats();
+    } catch (err: any) {
+      const msg = err?.message?.includes('already assigned')
+        ? 'This employee is already assigned to the slot.'
+        : 'Failed to assign employee. Please try again.';
+      setToast({ type: 'error', message: msg }); // Error toast
     } finally {
       setSubmitting(false);
     }
@@ -204,6 +212,14 @@ export default function ServiceAppointmentsPage() {
     fetchAppointments(1);
     fetchStats();
   }, [statusFilter]);
+
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const getStatusBadgeColor = (status: string) => {
     const statusLower = status.toLowerCase();
@@ -514,6 +530,17 @@ export default function ServiceAppointmentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Toast Alert */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <Alert className={toast.type === 'success' ? 'bg-[#33CC7A] text-white border-[#33CC7A]' : 'bg-[#E63946] text-white border-[#E63946]'}>
+            <AlertDescription className="font-semibold text-white text-base">
+              {toast.message}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }
