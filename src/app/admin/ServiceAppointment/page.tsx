@@ -143,9 +143,8 @@ export default function ServiceAppointmentsPage() {
         'EightAm': 0,
         'TenAm': 1,
         'TwelvePm': 2,
-        'OnePm': 3,
-        'ThreePm': 4,
-        'FivePm': 5
+        'OnePm': 3
+       
       };
       
       const slotTimeValue = slotTimeMap[slotTime] ?? 0;
