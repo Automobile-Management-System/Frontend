@@ -401,7 +401,7 @@ const PaymentsPage = () => {
                           download={`${invoice.invoiceNumber}.pdf`}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Download Invoice
+                          Download Receipt
                         </a>
                       </Button>
                     )}
