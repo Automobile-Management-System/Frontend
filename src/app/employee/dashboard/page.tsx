@@ -237,7 +237,7 @@ export default function EmployeeDashboard() {
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <PlayCircle className="w-6 h-6 text-purple-600" />
+               <TrendingUp className="w-6 h-6 text-orange-600" />
             </div>
           </div>
         </div>
@@ -266,8 +266,9 @@ export default function EmployeeDashboard() {
                 {completedModificationCount?.completedModificationCount ?? 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-orange-600" />
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+             
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -281,10 +282,6 @@ export default function EmployeeDashboard() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Today Recent Services</h2>
-              <button className="flex items-center text-sm text-blue-600 hover:text-blue-700">
-                View All
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </button>
             </div>
             <p className="text-sm text-gray-500 mt-1">
               Your recent services for {recentServices?.date ? formatDate(recentServices.date) : 'today'}
@@ -344,10 +341,10 @@ export default function EmployeeDashboard() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Today Recent Modifications</h2>
-              <button className="flex items-center text-sm text-blue-600 hover:text-blue-700">
+              {/* <button className="flex items-center text-sm text-blue-600 hover:text-blue-700">
                 View All
                 <ArrowRight className="w-4 h-4 ml-1" />
-              </button>
+              </button> */}
             </div>
             <p className="text-sm text-gray-500 mt-1">
               Your recent modifications for {recentModifications?.date ? formatDate(recentModifications.date) : 'today'}
