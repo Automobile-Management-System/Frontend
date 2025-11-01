@@ -11,6 +11,27 @@ import { handleApiError, formatApiDate, formatApiTime } from "@/lib/apiUtils";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 
+// Add custom styles for animations
+const customStyles = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = customStyles;
+  document.head.appendChild(styleSheet);
+}
+
 const AppointmentsPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -198,13 +219,19 @@ const AppointmentsPage = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 bg-gray-200 rounded"></div>
-          ))}
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="animate-pulse space-y-6">
+            <div className="bg-white rounded-2xl p-8 shadow-lg">
+              <div className="h-8 bg-gray-200 rounded-lg w-1/3 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-lg">
+                <div className="h-32 bg-gray-200 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -215,133 +242,186 @@ const AppointmentsPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            My Appointments
-          </h1>
-          <p className="text-gray-600">Manage your service appointments</p>
-        </div>
-        <Button
-          onClick={() => setShowBookingForm(true)}
-          className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90"
-        >
-          <span className="mr-2">+</span>
-          Book Appointment
-        </Button>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
-      )}
-
-      {/* Appointments List */}
-      <div className="space-y-4">
-        {appointments.length === 0 ? (
-          <div className="text-center py-12">
-            <Car className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No appointments yet
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Book your first appointment to get started
-            </p>
-            <Button
-              onClick={() => setShowBookingForm(true)}
-              className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90"
-            >
-              Book Appointment
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Enhanced Header */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                My Appointments
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Manage your service appointments with ease
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => setShowBookingForm(true)}
+                className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a87] hover:from-[#1a2f4f] hover:to-[#1e3a5f] text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                <span className="mr-2">+</span>
+                Book New Appointment
+              </Button>
+            </div>
           </div>
-        ) : (
-          appointments.map((appointment) => (
-            <div
-              key={appointment.appointmentId}
-              className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {appointment.services.map((s) => s.serviceName).join(", ")}
-                  </h3>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge className={getStatusColor(appointment.status)}>
-                    {getStatusLabel(appointment.status)}
-                  </Badge>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Total Price</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      $
-                      {appointment.services
-                        .reduce((sum, s) => sum + s.basePrice, 0)
-                        .toFixed(2)}
-                    </p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 text-red-700 px-6 py-4 rounded-r-lg mb-6 shadow-sm">
+            <div className="flex items-center">
+              <X className="h-5 w-5 mr-2" />
+              {error}
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Appointments List */}
+        <div className="space-y-6">
+          {appointments.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-100">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Car className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-3">
+                No appointments yet
+              </h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                Start your journey with us by booking your first service appointment. Our expert team is ready to help you.
+              </p>
+              <Button
+                onClick={() => setShowBookingForm(true)}
+                className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a87] hover:from-[#1a2f4f] hover:to-[#1e3a5f] text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                <span className="mr-2">+</span>
+                Book Your First Appointment
+              </Button>
+            </div>
+          ) : (
+            appointments.map((appointment, index) => (
+              <div
+                key={appointment.appointmentId}
+                className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group"
+                style={{
+                  animationDelay: `${index * 100}ms`,
+                  animation: 'fadeInUp 0.6s ease-out both'
+                }}
+              >
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+                  {/* Left Section - Main Info */}
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#1e3a5f] transition-colors">
+                          {appointment.services.map((s) => s.serviceName).join(", ")}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`${getStatusColor(appointment.status)} font-medium px-3 py-1`}>
+                            {getStatusLabel(appointment.status)}
+                          </Badge>
+                          <span className="text-sm text-gray-500">
+                            ID: #{appointment.appointmentId}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500 mb-1">Total Amount</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          $
+                          {appointment.services
+                            .reduce((sum, s) => sum + s.basePrice, 0)
+                            .toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Date, Time, Vehicle Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Calendar className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Date</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatApiDate(appointment.dateTime)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Clock className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Time</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatApiTime(appointment.dateTime)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <Car className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Vehicle</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {getVehicleNumber(appointment)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Services */}
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-gray-700">Services Included:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {appointment.services.map((service, index) => (
+                          <div
+                            key={index}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300"
+                          >
+                            <span>{service.serviceName}</span>
+                            <span className="text-green-600 font-bold">${service.basePrice}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    {String(appointment.status || "").toLowerCase() === "pending" && (
+                      <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Reschedule
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
+            ))
+          )}
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">
-                    {formatApiDate(appointment.dateTime)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-sm">
-                    {formatApiTime(appointment.dateTime)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Car className="h-4 w-4" />
-                  <span className="text-sm">
-                    {getVehicleNumber(appointment)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-1">Services:</p>
-                <div className="flex flex-wrap gap-2">
-                  {appointment.services.map((service, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                    >
-                      {service.serviceName} - ${service.basePrice}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {String(appointment.status || "").toLowerCase() === "pending" && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Reschedule
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))
-        )}
+        <BookingForm
+          isOpen={showBookingForm}
+          onCloseAction={() => setShowBookingForm(false)}
+          onSuccessAction={loadAppointments}
+        />
       </div>
-
-      <BookingForm
-        isOpen={showBookingForm}
-        onCloseAction={() => setShowBookingForm(false)}
-        onSuccessAction={loadAppointments}
-      />
     </div>
   );
 };
