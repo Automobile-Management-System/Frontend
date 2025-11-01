@@ -195,9 +195,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       console.log("Selected vehicle object:", selectedVehicleObj);
       console.log("Available vehicles:", vehicles);
 
-  await appointmentAPI.createAppointment(dto);
-  onSuccessAction();
-  onCloseAction();
+      await appointmentAPI.createAppointment(dto);
+      onSuccessAction();
+      onCloseAction();
       resetForm();
     } catch (err) {
       console.error("Appointment creation error:", err);
@@ -230,7 +230,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   };
 
   return (
-  <Dialog open={isOpen} onOpenChange={onCloseAction}>
+    <Dialog open={isOpen} onOpenChange={onCloseAction}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Book New Appointment</DialogTitle>
