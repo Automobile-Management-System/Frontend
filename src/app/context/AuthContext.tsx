@@ -1,15 +1,23 @@
-'use client';
+"use client";
 
-import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { useRouter } from 'next/navigation';
-import { config } from '@/lib/config';
+import {
+  createContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useContext,
+} from "react";
+import { useRouter } from "next/navigation";
 
 // Define the User type
 interface User {
+  id?: number; // User ID from the database
+  employeeId?: number; // Employee ID (only for Employee role)
+  customerId?: number; // Customer ID (only for Customer role)
   email: string;
   firstName: string;
   lastName: string;
-  role: 'Admin' | 'Employee' | 'Customer';
+  role: "Admin" | "Employee" | "Customer";
 }
 
 // Define the Context shape
@@ -24,6 +32,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Flag to prevent repeated backend integration warnings
+let backendWarningShown = false;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,22 +44,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkUserSession = async () => {
       try {
         // The browser automatically sends the HttpOnly cookie
-        const response = await fetch('http://localhost:5001/api/Auth/profile', {
-          method: 'GET',
+        const response = await fetch("http://localhost:5001/api/Auth/profile", {
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          credentials: 'include', // IMPORTANT: This sends the cookie
+          credentials: "include", // IMPORTANT: This sends the cookie
         });
 
         if (response.ok) {
           const userData = await response.json();
-          setUser(userData);
+          console.log("Profile data:", userData);
+
+          // If user is an Employee, try to get employee ID from database
+          if (userData.role === "Employee") {
+            // Check if the profile response already includes employeeId
+            if (userData.employeeId) {
+              setUser(userData);
+            } else {
+              // Only show backend integration warning once per session
+              if (!backendWarningShown) {
+                console.log("Employee ID not provided by profile endpoint.");
+                console.warn("🚨 BACKEND INTEGRATION REQUIRED:");
+                console.warn(
+                  "📋 Your backend team needs to implement ONE of these solutions:"
+                );
+                console.warn(
+                  "   1. Add 'employeeId' field to /api/Auth/profile response (RECOMMENDED)"
+                );
+                console.warn(
+                  "   2. Create GET /api/Employee/GetByEmail/{email} endpoint"
+                );
+                console.warn("   3. Create GET /api/Employee/profile endpoint");
+                console.warn(
+                  "💡 See BACKEND_INTEGRATION_NEEDED.md for implementation details"
+                );
+                backendWarningShown = true;
+              }
+
+              // Set user without employee ID - will show appropriate error message
+              setUser(userData);
+            }
+          } else {
+            setUser(userData);
+          }
         } else {
           setUser(null);
         }
       } catch (error) {
-        console.error('Session check failed:', error);
+        console.error("Session check failed:", error);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -60,17 +104,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await fetch('http://localhost:5001/api/Auth/logout', {
-        method: 'POST',
-        credentials: 'include',
+      await fetch("http://localhost:5001/api/Auth/logout", {
+        method: "POST",
+        credentials: "include",
       });
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     } finally {
       // Clear user state regardless of API call success
       setUser(null);
       // Redirect to login page
-      router.push('/login');
+      router.push("/login");
     }
   };
 
@@ -85,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
