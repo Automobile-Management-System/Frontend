@@ -68,3 +68,16 @@ export interface AppointmentResponse {
   vehicleRegistrationNumber?: string;
   vehicle?: Partial<Vehicle>;
 }
+
+export interface PaginationParameters {
+  page: number;
+  pageSize: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+}

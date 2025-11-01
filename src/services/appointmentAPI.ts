@@ -1,6 +1,5 @@
 import { config } from "@/lib/config";
 import { ApiError } from "@/lib/apiUtils";
-import { api as axiosApi } from "@/services/api";
 import {
   Service,
   Vehicle,
@@ -8,6 +7,8 @@ import {
   CreateAppointmentDto,
   AppointmentResponse,
   AvailabilityResponse,
+  PaginationParameters,
+  PaginatedResult,
 } from "@/types/appointments";
 
 const getAuthHeaders = () => {
@@ -232,6 +233,46 @@ export const appointmentAPI = {
 
     if (!response.ok) {
       throw new ApiError("Failed to fetch appointments", response.status);
+    }
+
+    return response.json();
+  },
+
+  async getMyAppointmentsPaginated(
+    parameters: PaginationParameters
+  ): Promise<PaginatedResult<AppointmentResponse>> {
+    const queryParams = new URLSearchParams({
+      page: parameters.page.toString(),
+      pageSize: parameters.pageSize.toString(),
+    });
+
+    const response = await fetch(
+      `${config.apiBaseUrl}/Appointment/my-appointments/paginated?${queryParams}`,
+      getFetchOptions()
+    );
+
+    if (!response.ok) {
+      throw new ApiError("Failed to fetch paginated appointments", response.status);
+    }
+
+    return response.json();
+  },
+
+  async getAllAppointmentsPaginated(
+    parameters: PaginationParameters
+  ): Promise<PaginatedResult<AppointmentResponse>> {
+    const queryParams = new URLSearchParams({
+      page: parameters.page.toString(),
+      pageSize: parameters.pageSize.toString(),
+    });
+
+    const response = await fetch(
+      `${config.apiBaseUrl}/Appointment/paginated?${queryParams}`,
+      getFetchOptions()
+    );
+
+    if (!response.ok) {
+      throw new ApiError("Failed to fetch paginated appointments", response.status);
     }
 
     return response.json();
