@@ -1,25 +1,22 @@
+// src/services/api.ts
 import axios from 'axios';
 
-const BASE_URL = 'https://localhost:7230/api/customer-modification-requests';
+const BASE_URL = 'http://localhost:5001/api/customer-modification-requests';
+const VEHICLE_URL = 'http://localhost:5001/api/customer-vehicles';
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
+});
+
+const vehicleInstance = axios.create({
+  baseURL: VEHICLE_URL,
+  withCredentials: true,
 });
 
 export const api = {
-  // Get all requests (optional)
   getAllRequests: () => axiosInstance.get(''),
-
-  // Get requests for a specific user
-  getUserRequests: (userId: number) => axiosInstance.get(`/user/${userId}`),
-
-  // Add a new request
   createRequest: (data: any) => axiosInstance.post('', data),
-
-  // ✅ Get vehicles for a specific user
-  getUserVehicles: (userId: number) =>
-    axios.get(`https://localhost:7230/api/customer-vehicles/user/${userId}`),
+  getUserVehicles: () => vehicleInstance.get(''),
 };

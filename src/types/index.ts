@@ -1,10 +1,12 @@
 // src/types/index.ts
+
 export interface Vehicle {
-  vehicleId: Key | null | undefined;
-  id: number;
+  vehicleId: number;
   model: string;
   registrationNumber: string;
 }
+
+export type RequestStatus = 'Pending' | 'In Progress' | 'Completed' | 'Rejected';
 
 export interface ModificationRequest {
   modificationId: number;
@@ -14,7 +16,8 @@ export interface ModificationRequest {
   vehicle?: Vehicle;
   createdDate: string;
   createdDateString: string;
-  requestStatus: 'Pending' | 'In Progress' | 'Completed';
+  createdTimeString: string;
+  requestStatus: RequestStatus;
   appointmentId?: number;
   appointmentSummary?: string;
   userId: number;

@@ -1,3 +1,4 @@
+// src/components/customer/RequestCard.tsx
 import { ModificationRequest } from '@/types';
 
 interface Props {
@@ -8,6 +9,7 @@ const STATUS_COLORS: Record<ModificationRequest['requestStatus'], string> = {
   Pending: 'bg-yellow-100 text-yellow-800',
   'In Progress': 'bg-blue-100 text-blue-800',
   Completed: 'bg-green-100 text-green-800',
+  Rejected: 'bg-red-100 text-red-800',
 };
 
 export default function RequestCard({ request }: Props) {
