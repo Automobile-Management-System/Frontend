@@ -46,16 +46,11 @@ const AppointmentsPage = () => {
           return [] as Vehicle[];
         }),
       ]);
-      // Sort: upcoming soonest first, then past most recent first
-      const sorted = (() => {
-        const now = new Date();
-        const toTime = (d: string) => new Date(d).getTime();
-        const upcoming = appts.filter((a) => new Date(a.dateTime) >= now);
-        const past = appts.filter((a) => new Date(a.dateTime) < now);
-        upcoming.sort((a, b) => toTime(a.dateTime) - toTime(b.dateTime));
-        past.sort((a, b) => toTime(b.dateTime) - toTime(a.dateTime));
-        return [...upcoming, ...past];
-      })();
+      // Sort: latest created appointments first (by appointmentId descending)
+      // Higher appointmentId typically means more recently created
+      const sorted = appts.sort((a, b) => {
+        return b.appointmentId - a.appointmentId; // Descending order (newest first)
+      });
       setAppointments(sorted);
       setVehicles(vehs);
     } catch (err) {
