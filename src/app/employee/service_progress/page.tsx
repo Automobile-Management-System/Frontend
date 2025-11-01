@@ -4,18 +4,26 @@ import React, { useState, useEffect } from "react";
 import { ServiceProgressCard } from "../../../../components/employee/ServiceProgressCard";
 import { StatusUpdateModal } from "../../../../components/employee/StatusUpdateModal";
 import { useServiceProgress } from "../../../hooks/useServiceProgress";
+import { useAuth } from "../../context/AuthContext";
 import {
   ServiceProgressDto,
   AppointmentStatus,
 } from "../../../types/serviceProgress";
 
-interface ServiceProgressPageProps {
-  employeeId?: number;
-}
+const ServiceProgressPage: React.FC = () => {
+  const { user, isLoading: authLoading } = useAuth();
 
-const ServiceProgressPage: React.FC<ServiceProgressPageProps> = ({
-  employeeId = 3, // Default employee ID, you can get this from auth context
-}) => {
+  // Get employeeId from authenticated user
+  const employeeId = user?.employeeId || user?.id;
+
+  // Debug logging - only on initial mount
+  useEffect(() => {
+    console.log("ServiceProgressPage - User:", user);
+    console.log("ServiceProgressPage - User employeeId property:", user?.employeeId);
+    console.log("ServiceProgressPage - User id property:", user?.id);
+    console.log("ServiceProgressPage - Final Employee ID:", employeeId);
+  }, [user, employeeId]); // Only log when user or employeeId changes
+
   const {
     serviceProgress,
     loading,
@@ -27,7 +35,7 @@ const ServiceProgressPage: React.FC<ServiceProgressPageProps> = ({
     updateStatus,
     refreshData,
     refreshPendingServices,
-  } = useServiceProgress(employeeId);
+  } = useServiceProgress(employeeId || 0);
 
   const [selectedAppointment, setSelectedAppointment] =
     useState<ServiceProgressDto | null>(null);
@@ -46,6 +54,11 @@ const ServiceProgressPage: React.FC<ServiceProgressPageProps> = ({
     action: () => Promise<any>,
     actionName: string
   ) => {
+    if (!employeeId) {
+      alert("Employee ID not found. Please refresh the page and try again.");
+      return;
+    }
+
     try {
       await action();
     } catch (error) {
@@ -82,6 +95,11 @@ const ServiceProgressPage: React.FC<ServiceProgressPageProps> = ({
   };
 
   const handleStopAndComplete = async (appointmentId: number) => {
+    if (!employeeId) {
+      alert("Employee ID not found. Please refresh the page and try again.");
+      return;
+    }
+
     try {
       // First stop the timer directly (without auto-refresh to avoid overriding local state)
       try {
@@ -113,6 +131,112 @@ const ServiceProgressPage: React.FC<ServiceProgressPageProps> = ({
     setSelectedAppointment(appointment);
     setShowStatusModal(true);
   };
+
+  // Show loading state while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Check if user is authenticated and is an employee
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Authentication Required
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Please log in to access the service progress dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== "Employee") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-yellow-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Access Denied
+            </h3>
+            <p className="text-gray-600 mb-6">
+              This page is only accessible to employees.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!employeeId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Employee ID Not Found
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Unable to retrieve your employee ID. Please contact support.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -226,7 +350,8 @@ const ServiceProgressPage: React.FC<ServiceProgressPageProps> = ({
                 Service Progress Dashboard
               </h1>
               <p className="text-gray-600 mt-2 text-lg">
-                Monitor your service appointments and track work progress
+                Welcome back, {user.firstName}! Monitor your service
+                appointments and track work progress
               </p>
             </div>
             <button
@@ -430,27 +555,30 @@ const ServiceProgressPage: React.FC<ServiceProgressPageProps> = ({
                 key={appointment.appointmentId}
                 className="transform hover:scale-[1.02] transition-all duration-300"
                 style={{
+                  animationName: "fadeInUp",
+                  animationDuration: "0.6s",
+                  animationTimingFunction: "ease-out",
+                  animationFillMode: "forwards",
                   animationDelay: `${index * 100}ms`,
-                  animation: "fadeInUp 0.6s ease-out forwards",
                 }}
               >
                 <ServiceProgressCard
                   appointment={appointment}
                   onStartTimer={() =>
                     handleTimerAction(
-                      () => startTimer(appointment.appointmentId, employeeId),
+                      () => startTimer(appointment.appointmentId, employeeId!),
                       "Start timer"
                     )
                   }
                   onPauseTimer={() =>
                     handleTimerAction(
-                      () => pauseTimer(appointment.appointmentId, employeeId),
+                      () => pauseTimer(appointment.appointmentId, employeeId!),
                       "Pause timer"
                     )
                   }
                   onStopTimer={() =>
                     handleTimerAction(
-                      () => stopTimer(appointment.appointmentId, employeeId),
+                      () => stopTimer(appointment.appointmentId, employeeId!),
                       "Stop timer"
                     )
                   }
