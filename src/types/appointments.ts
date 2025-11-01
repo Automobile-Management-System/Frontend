@@ -24,8 +24,10 @@ export interface Vehicle {
 }
 
 export interface TimeSlot {
-  slot: string;
+  // Numeric slot index from backend (e.g., 0,1,3,4)
+  slot: number;
   available: boolean;
+  // Remaining capacity for that slot
   count: number;
 }
 
@@ -50,11 +52,17 @@ export interface CreateAppointmentDto {
 export interface AppointmentResponse {
   appointmentId: number;
   dateTime: string;
-  status: string;
+  status: string | number;
   userId: number;
   userName?: string;
   services: {
     serviceName: string;
     basePrice: number;
   }[];
+  // Optional vehicle info (backend may return any of these)
+  vehicleId?: number | string;
+  registrationNumber?: string;
+  licensePlate?: string;
+  vehicleRegistrationNumber?: string;
+  vehicle?: Partial<Vehicle>;
 }
