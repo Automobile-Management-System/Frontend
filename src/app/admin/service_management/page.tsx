@@ -11,6 +11,16 @@ interface Service {
   basePrice: number;
 }
 
+interface PagedResult {
+  items: Service[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
 interface ServiceStats {
   totalServices: number;
   averagePrice: number;
@@ -26,6 +36,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/a
 
 export default function ServiceManagementPage() {
   const [services, setServices] = useState<Service[]>([]);
+  const [pagedResult, setPagedResult] = useState<PagedResult | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState<ServiceStats>({ totalServices: 0, averagePrice: 0 });
   const [loading, setLoading] = useState(true);
   const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
@@ -43,9 +56,9 @@ export default function ServiceManagementPage() {
   });
 
   useEffect(() => {
-    fetchServices();
+    fetchServices(currentPage);
     fetchStats();
-  }, []);
+  }, [currentPage, searchQuery]);
 
   useEffect(() => {
     if (toast) {
@@ -58,12 +71,24 @@ export default function ServiceManagementPage() {
     setToast({ message, type });
   };
 
-  const fetchServices = async () => {
+  const fetchServices = async (page: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/Services`);
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/Services?pageNumber=${page}&pageSize=10`);
       if (!response.ok) throw new Error('Failed to fetch services');
-      const data = await response.json();
-      setServices(data);
+      const data: PagedResult = await response.json();
+      setPagedResult(data);
+      
+      // Filter services based on search query
+      if (searchQuery.trim()) {
+        const filtered = data.items.filter(service =>
+          service.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          service.description.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setServices(filtered);
+      } else {
+        setServices(data.items);
+      }
     } catch (error) {
       showToast('Failed to load services', 'error');
       console.error(error);
@@ -81,6 +106,15 @@ export default function ServiceManagementPage() {
     } catch (error) {
       console.error('Failed to load stats:', error);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleOpenDialog = (service?: Service) => {
@@ -139,7 +173,7 @@ export default function ServiceManagementPage() {
         showToast('Service created successfully', 'success');
       }
 
-      fetchServices();
+      fetchServices(currentPage);
       fetchStats();
       handleCloseDialog();
     } catch (error) {
@@ -163,7 +197,13 @@ export default function ServiceManagementPage() {
       if (!response.ok) throw new Error('Failed to delete service');
       
       showToast('Service deleted successfully', 'success');
-      fetchServices();
+      
+      // If we deleted the last item on a page other than page 1, go to previous page
+      if (services.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchServices(currentPage);
+      }
       fetchStats();
     } catch (error) {
       showToast('Failed to delete service', 'error');
@@ -177,7 +217,92 @@ export default function ServiceManagementPage() {
     setDeleteDialog({ open: false, serviceId: null });
   };
 
-  if (loading) {
+  const renderPagination = () => {
+    if (!pagedResult || pagedResult.totalPages <= 1) return null;
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(pagedResult.totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-between px-6 py-4 border-t border-[#D5D9DE]">
+        <div className="text-sm text-[#1F2A3C]">
+          Showing <span className="font-medium">{(currentPage - 1) * 10 + 1}</span> to{' '}
+          <span className="font-medium">
+            {Math.min(currentPage * 10, pagedResult.totalCount)}
+          </span>{' '}
+          of <span className="font-medium">{pagedResult.totalCount}</span> services
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={!pagedResult.hasPreviousPage}
+            className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Previous
+          </button>
+
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => handlePageChange(1)}
+                className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] transition-colors"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="px-2 text-[#B8BDC5]">...</span>}
+            </>
+          )}
+
+          {pages.map((page) => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-2 border rounded-lg transition-colors ${
+                page === currentPage
+                  ? 'bg-[#0B2E66] text-white border-[#0B2E66]'
+                  : 'border-[#D5D9DE] text-[#1F2A3C] hover:bg-[#F7F9FB]'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          {endPage < pagedResult.totalPages && (
+            <>
+              {endPage < pagedResult.totalPages - 1 && <span className="px-2 text-[#B8BDC5]">...</span>}
+              <button
+                onClick={() => handlePageChange(pagedResult.totalPages)}
+                className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] transition-colors"
+              >
+                {pagedResult.totalPages}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={!pagedResult.hasNextPage}
+            className="px-3 py-2 border border-[#D5D9DE] rounded-lg text-[#1F2A3C] hover:bg-[#F7F9FB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading && !pagedResult) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0B2E66]"></div>
@@ -246,7 +371,7 @@ export default function ServiceManagementPage() {
                   rows={3}
                 />
               </div>
-               <div>
+              <div>
                 <label className="block text-sm font-medium text-[#1F2A3C] mb-1">
                   Base Price (LKR)
                 </label>
@@ -283,28 +408,60 @@ export default function ServiceManagementPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-[#0B2E66]">Automobile Service Management</h1>
+          <h1 className="text-3xl font-bold text-[#0B2E66]">Service Catalog</h1>
           <p className="text-[#1F2A3C] mt-2">
-            Manage your automobile services and pricing
+            Manage available services and pricing
           </p>
         </div>
 
-        {/* Action Bar */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-[#0B2E66]">Service Catalog</h2>
-            <p className="text-sm text-[#B8BDC5]">Manage available services and pricing</p>
-          </div>
-          <button
-            onClick={() => handleOpenDialog()}
-            className="flex items-center gap-2 bg-[#0B2E66] hover:bg-[#1E63CC] text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Service
-          </button>
-        </div>
+      {/* Search Bar and Add Button */}
+<div className="flex flex-col sm:flex-row justify-center items-center gap-4 w-full mt-6">
+  {/* Search Bar */}
+  <div className="relative w-full max-w-2xl">
+    <svg
+      className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#B8BDC5]"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+    <input
+      type="text"
+      placeholder="Search services..."
+      value={searchQuery}
+      onChange={handleSearchChange}
+      className="w-full pl-12 pr-4 py-2.5 border border-[#D5D9DE] rounded-lg focus:ring-2 focus:ring-[#1E63CC] focus:border-transparent text-[#1F2A3C]"
+    />
+  </div>
+
+  {/* Add Button */}
+  <button
+    onClick={() => handleOpenDialog()}
+    className="flex items-center justify-center gap-2 bg-[#0B2E66] hover:bg-[#1E63CC] text-white px-6 py-2.5 rounded-lg transition-colors whitespace-nowrap"
+  >
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4v16m8-8H4"
+      />
+    </svg>
+    Add Service
+  </button>
+</div>
+
 
         {/* Stats Cards */}
         <div className="grid sm:grid-cols-2 gap-4">
@@ -341,14 +498,22 @@ export default function ServiceManagementPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-[#D5D9DE]">
-                {services.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center">
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0B2E66]"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : services.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-[#B8BDC5]">
                       No services found. Click "Add Service" to create one.
                     </td>
                   </tr>
                 ) : (
-                  [...services].sort((a, b) => a.serviceName.localeCompare(b.serviceName)).map((service) => (
+                  services.map((service) => (
                     <tr key={service.serviceId} className="hover:bg-[#F7F9FB]">
                       <td className="px-6 py-4">
                         <div className="font-medium text-[#0B2E66]">{service.serviceName}</div>
@@ -389,6 +554,9 @@ export default function ServiceManagementPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          {renderPagination()}
         </div>
       </div>
 

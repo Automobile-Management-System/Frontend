@@ -27,7 +27,7 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
 
-  // ✅ Ensure client-only hydration-safe render
+  //  Ensure client-only hydration-safe render
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) {
