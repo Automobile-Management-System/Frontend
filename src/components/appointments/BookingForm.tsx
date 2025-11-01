@@ -34,11 +34,12 @@ interface BookingFormProps {
   onSuccessAction: () => void;
 }
 
+// Map UI labels to backend slot indices
 const timeSlots = [
-  { value: "08:00-10:00", label: "8:00 AM - 10:00 AM" },
-  { value: "10:00-12:00", label: "10:00 AM - 12:00 PM" },
-  { value: "13:00-15:00", label: "1:00 PM - 3:00 PM" },
-  { value: "15:00-17:00", label: "3:00 PM - 5:00 PM" },
+  { index: 0, value: "08:00-10:00", label: "8:00 AM - 10:00 AM" },
+  { index: 1, value: "10:00-12:00", label: "10:00 AM - 12:00 PM" },
+  { index: 3, value: "13:00-15:00", label: "1:00 PM - 3:00 PM" },
+  { index: 4, value: "15:00-17:00", label: "3:00 PM - 5:00 PM" },
 ];
 
 export const BookingForm: React.FC<BookingFormProps> = ({
@@ -129,11 +130,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     setError("");
 
     try {
-      // Map selected time slot to backend slot index (0-based)
-      const slotIndex = timeSlots.findIndex(
-        (slot) => slot.value === selectedTimeSlot
+      // Map selected time slot to backend slot index (can be 0,1,3,4)
+      const slotDef = timeSlots.find(
+        (slot) => `${slot.index}` === selectedTimeSlot
       );
-      if (slotIndex === -1) {
+      const slotIndex = slotDef?.index;
+      if (slotIndex === undefined) {
         setError("Invalid time slot selected");
         return;
       }
@@ -224,8 +226,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
   const getAvailableSlots = () => {
     return timeSlots.filter((slot) => {
-      const availabilitySlot = availability.find((a) => a.slot === slot.value);
-      return availabilitySlot?.available && availabilitySlot.count > 0;
+      const availabilitySlot = availability.find((a) => a.slot === slot.index);
+      return (
+        Boolean(availabilitySlot?.available) &&
+        (availabilitySlot?.count || 0) > 0
+      );
     });
   };
 
@@ -300,21 +305,39 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           {/* Time Slot Selection */}
           <div>
             <Label>Select Time Slot</Label>
-            <Select
-              value={selectedTimeSlot}
-              onValueChange={setSelectedTimeSlot}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a time slot" />
-              </SelectTrigger>
-              <SelectContent>
-                {getAvailableSlots().map((slot) => (
-                  <SelectItem key={slot.value} value={slot.value}>
-                    {slot.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {(() => {
+              const availableSlots = getAvailableSlots();
+              return (
+                <Select
+                  value={selectedTimeSlot}
+                  onValueChange={setSelectedTimeSlot}
+                  disabled={availableSlots.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        availableSlots.length === 0
+                          ? "No available time slots"
+                          : "Choose a time slot"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSlots.length === 0 ? (
+                      <SelectItem disabled value="no-slots">
+                        No available time slots
+                      </SelectItem>
+                    ) : (
+                      availableSlots.map((slot) => (
+                        <SelectItem key={slot.index} value={`${slot.index}`}>
+                          {slot.label}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              );
+            })()}
           </div>
 
           {/* Vehicle Selection */}

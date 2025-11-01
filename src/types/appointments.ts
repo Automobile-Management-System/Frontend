@@ -24,8 +24,10 @@ export interface Vehicle {
 }
 
 export interface TimeSlot {
-  slot: string;
+  // Numeric slot index from backend (e.g., 0,1,3,4)
+  slot: number;
   available: boolean;
+  // Remaining capacity for that slot
   count: number;
 }
 

@@ -79,19 +79,27 @@ export const appointmentAPI = {
 
     const data = await response.json();
 
-    // Convert backend response to TimeSlot format
-    const timeSlots = [
-      { value: "08:00-10:00", label: "8:00 AM - 10:00 AM" },
-      { value: "10:00-12:00", label: "10:00 AM - 12:00 PM" },
-      { value: "13:00-15:00", label: "1:00 PM - 3:00 PM" },
-      { value: "15:00-17:00", label: "3:00 PM - 5:00 PM" },
-    ];
+    // Backend returns an array of slot objects like:
+    // [{ slot: 0, booked: 5, capacity: 5, remaining: 0, isAvailable: false }, ...]
+    // We convert to our TimeSlot format with numeric slot index.
+    const arr: any[] = Array.isArray(data) ? data : [];
 
-    return timeSlots.map((slot) => ({
-      slot: slot.value,
-      available: data[slot.value]?.available ?? true,
-      count: data[slot.value]?.count ?? 5,
-    }));
+    return (
+      arr
+        // Only consider known working slots per business hours (0,1,3,4)
+        .filter((s) => [0, 1, 3, 4].includes(Number(s?.slot)))
+        .map((s) => {
+          const remaining = Number(
+            s?.remaining ?? (s?.capacity ?? 0) - (s?.booked ?? 0)
+          );
+          const available = Boolean(s?.isAvailable) && remaining > 0;
+          return {
+            slot: Number(s?.slot),
+            available,
+            count: Math.max(0, remaining),
+          } as TimeSlot;
+        })
+    );
   },
 
   async createAppointment(
