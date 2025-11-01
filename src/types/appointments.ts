@@ -50,11 +50,17 @@ export interface CreateAppointmentDto {
 export interface AppointmentResponse {
   appointmentId: number;
   dateTime: string;
-  status: string;
+  status: string | number;
   userId: number;
   userName?: string;
   services: {
     serviceName: string;
     basePrice: number;
   }[];
+  // Optional vehicle info (backend may return any of these)
+  vehicleId?: number | string;
+  registrationNumber?: string;
+  licensePlate?: string;
+  vehicleRegistrationNumber?: string;
+  vehicle?: Partial<Vehicle>;
 }

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Car, Edit, X } from "lucide-react";
 import { BookingForm } from "@/components/appointments/BookingForm";
 import { appointmentAPI } from "@/services/appointmentAPI";
-import { AppointmentResponse } from "@/types/appointments";
+import { AppointmentResponse, Vehicle } from "@/types/appointments";
 import { handleApiError, formatApiDate, formatApiTime } from "@/lib/apiUtils";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ const AppointmentsPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -37,8 +38,26 @@ const AppointmentsPage = () => {
     try {
       setLoading(true);
       setError("");
-      const data = await appointmentAPI.getMyAppointments();
-      setAppointments(data);
+      // Load appointments and vehicles in parallel for vehicle number mapping
+      const [appts, vehs] = await Promise.all([
+        appointmentAPI.getMyAppointments(),
+        appointmentAPI.getVehicles().catch((e) => {
+          console.warn("Failed to load vehicles for mapping:", e);
+          return [] as Vehicle[];
+        }),
+      ]);
+      // Sort: upcoming soonest first, then past most recent first
+      const sorted = (() => {
+        const now = new Date();
+        const toTime = (d: string) => new Date(d).getTime();
+        const upcoming = appts.filter((a) => new Date(a.dateTime) >= now);
+        const past = appts.filter((a) => new Date(a.dateTime) < now);
+        upcoming.sort((a, b) => toTime(a.dateTime) - toTime(b.dateTime));
+        past.sort((a, b) => toTime(b.dateTime) - toTime(a.dateTime));
+        return [...upcoming, ...past];
+      })();
+      setAppointments(sorted);
+      setVehicles(vehs);
     } catch (err) {
       console.error('Failed to load appointments:', err);
       setError(handleApiError(err));
@@ -49,21 +68,133 @@ const AppointmentsPage = () => {
   };
 
   const getStatusColor = (status: any) => {
-    const statusStr = String(status || '').toLowerCase();
-    switch (statusStr) {
-      case 'pending':
-      case 'upcoming':
-        return "bg-blue-100 text-blue-800";
-      case 'in progress':
-      case 'inprogress':
-        return "bg-yellow-100 text-yellow-800";
-      case 'completed':
-        return "bg-green-100 text-green-800";
-      case 'cancelled':
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+    // Map numeric enum first
+    if (typeof status === 'number') {
+      switch (status) {
+        case 0: // Pending
+          return 'bg-yellow-100 text-yellow-800';
+        case 1: // Upcoming
+          return 'bg-blue-100 text-blue-800';
+        case 2: // InProgress
+          return 'bg-purple-100 text-purple-800';
+        case 3: // Completed
+          return 'bg-green-100 text-green-800';
+        case 4: // Rejected
+          return 'bg-red-100 text-red-800';
+        default:
+          return 'bg-gray-100 text-gray-800';
+      }
     }
+
+    const normalized = String(status || '')
+      .replace(/\s+/g, '')
+      .toLowerCase();
+    switch (normalized) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'upcoming':
+        return 'bg-blue-100 text-blue-800';
+      case 'inprogress':
+        return 'bg-purple-100 text-purple-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: any) => {
+    if (typeof status === 'number') {
+      switch (status) {
+        case 0:
+          return 'Pending';
+        case 1:
+          return 'Upcoming';
+        case 2:
+          return 'In Progress';
+        case 3:
+          return 'Completed';
+        case 4:
+          return 'Rejected';
+        default:
+          return String(status);
+      }
+    }
+    const s = String(status || '').trim();
+    const normalized = s.replace(/\s+/g, '').toLowerCase();
+    switch (normalized) {
+      case 'pending':
+        return 'Pending';
+      case 'upcoming':
+        return 'Upcoming';
+      case 'inprogress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        // Fallback: title-case the raw string
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+  };
+
+  const getAnyVehicleId = (obj: any): number | undefined => {
+    if (!obj) return undefined;
+    const possible = [
+      'vehicleId',
+      'id',
+      'VehicleId',
+      'ID',
+      'vehicleID',
+      'Id',
+      'customerVehicleId',
+      'carId',
+      'vehicleid',
+    ];
+    for (const key of possible) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        const v = typeof obj[key] === 'string' ? parseInt(obj[key], 10) : obj[key];
+        if (!Number.isNaN(v)) return v as number;
+      }
+    }
+    return undefined;
+  };
+
+  const getVehicleNumber = (appointment: AppointmentResponse) => {
+    // Direct fields on appointment
+    const direct =
+      (appointment as any).registrationNumber ||
+      (appointment as any).licensePlate ||
+      (appointment as any).vehicleRegistrationNumber ||
+      (appointment as any).vehicleNumber ||
+      (appointment as any).vehicleNo ||
+      (appointment as any).regNumber ||
+      (appointment as any).registrationNo;
+
+    if (direct) return direct as string;
+
+    // Nested vehicle object on appointment
+    const fromVehicle = (appointment as any).vehicle || {};
+    const nested = fromVehicle.registrationNumber || fromVehicle.licensePlate || fromVehicle.regNumber;
+    if (nested) return nested as string;
+
+    // Lookup via loaded vehicles by id
+    const apptVehId = getAnyVehicleId(appointment);
+    if (apptVehId && vehicles.length > 0) {
+      const match = vehicles.find((v) => getAnyVehicleId(v) === apptVehId);
+      if (match) {
+        return (
+          match.registrationNumber ||
+          match.licensePlate ||
+          (match as any).regNumber ||
+          'N/A'
+        );
+      }
+    }
+    return 'N/A';
   };
 
   if (authLoading || loading) {
@@ -134,19 +265,21 @@ const AppointmentsPage = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {appointment.services.map(s => s.serviceName).join(", ")}
                   </h3>
-                  <Badge className={getStatusColor(appointment.status)}>
-                    {appointment.status}
-                  </Badge>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">Total Price</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    ${appointment.services.reduce((sum, s) => sum + s.basePrice, 0).toFixed(2)}
-                  </p>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge className={getStatusColor(appointment.status)}>
+                    {getStatusLabel(appointment.status)}
+                  </Badge>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Total Price</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      ${appointment.services.reduce((sum, s) => sum + s.basePrice, 0).toFixed(2)}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="h-4 w-4" />
                   <span className="text-sm">{formatApiDate(appointment.dateTime)}</span>
@@ -154,6 +287,10 @@ const AppointmentsPage = () => {
                 <div className="flex items-center gap-2 text-gray-600">
                   <Clock className="h-4 w-4" />
                   <span className="text-sm">{formatApiTime(appointment.dateTime)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Car className="h-4 w-4" />
+                  <span className="text-sm">{getVehicleNumber(appointment)}</span>
                 </div>
               </div>
 
@@ -190,8 +327,8 @@ const AppointmentsPage = () => {
 
       <BookingForm 
         isOpen={showBookingForm}
-        onClose={() => setShowBookingForm(false)}
-        onSuccess={loadAppointments}
+        onCloseAction={() => setShowBookingForm(false)}
+        onSuccessAction={loadAppointments}
       />
     </div>
   );

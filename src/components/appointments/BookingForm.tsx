@@ -30,8 +30,8 @@ import { handleApiError } from "@/lib/apiUtils";
 
 interface BookingFormProps {
   isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  onCloseAction: () => void;
+  onSuccessAction: () => void;
 }
 
 const timeSlots = [
@@ -43,8 +43,8 @@ const timeSlots = [
 
 export const BookingForm: React.FC<BookingFormProps> = ({
   isOpen,
-  onClose,
-  onSuccess,
+  onCloseAction,
+  onSuccessAction,
 }) => {
   const [services, setServices] = useState<Service[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -195,9 +195,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       console.log("Selected vehicle object:", selectedVehicleObj);
       console.log("Available vehicles:", vehicles);
 
-      await appointmentAPI.createAppointment(dto);
-      onSuccess();
-      onClose();
+  await appointmentAPI.createAppointment(dto);
+  onSuccessAction();
+  onCloseAction();
       resetForm();
     } catch (err) {
       console.error("Appointment creation error:", err);
@@ -230,7 +230,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+  <Dialog open={isOpen} onOpenChange={onCloseAction}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Book New Appointment</DialogTitle>
@@ -386,7 +386,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={onCloseAction}
               className="flex-1"
             >
               Cancel
