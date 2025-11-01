@@ -1,6 +1,6 @@
 // src/services/employeeTimeLogAPI.ts
 
-import { EmployeeTimeLogResponse } from '@/types/employeeTimeLog';
+import { PaginatedEmployeeTimeLogResponse, TimeLogSearchParams } from '@/types/employeeTimeLog';
 import { ApiError, handleApiError } from '@/lib/apiUtils';
 import { config } from '@/lib/config';
 
@@ -41,8 +41,33 @@ class EmployeeTimeLogAPI {
     }
   }
 
-  async getMyTimeLogs(): Promise<EmployeeTimeLogResponse> {
-    return this.makeRequest<EmployeeTimeLogResponse>('/EmployeeTimeLog/my-logs');
+  private buildQueryString(params: TimeLogSearchParams): string {
+    const searchParams = new URLSearchParams();
+    
+    // Set defaults to match backend defaults
+    const pageNumber = params.pageNumber || 1;
+    const pageSize = params.pageSize || 10;
+    
+    searchParams.append('pageNumber', pageNumber.toString());
+    searchParams.append('pageSize', pageSize.toString());
+    
+    if (params.search && params.search.trim()) {
+      searchParams.append('search', params.search.trim());
+    }
+    if (params.startDate) {
+      searchParams.append('startDate', params.startDate);
+    }
+    if (params.endDate) {
+      searchParams.append('endDate', params.endDate);
+    }
+    
+    return searchParams.toString();
+  }
+
+  async getMyTimeLogs(params: TimeLogSearchParams = {}): Promise<PaginatedEmployeeTimeLogResponse> {
+    const queryString = this.buildQueryString(params);
+    const endpoint = `/EmployeeTimeLog/my-logs${queryString ? `?${queryString}` : ''}`;
+    return this.makeRequest<PaginatedEmployeeTimeLogResponse>(endpoint);
   }
 }
 

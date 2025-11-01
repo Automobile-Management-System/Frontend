@@ -8,10 +8,22 @@ import { ErrorDisplay, EmptyState } from '@/components/ui/error';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatApiDate, formatApiTime } from '@/lib/apiUtils';
 import TimeLogStatsCard from '../../../../components/employee/TimeLogStatsCard';
+import TimeLogFilters from '../../../../components/employee/TimeLogFilters';
+import TimeLogPagination from '../../../../components/employee/TimeLogPagination';
 
 export default function EmployeeTimeLogsPage() {
   const { user } = useAuth();
-  const { timeLogs, stats, loading, error, refreshData } = useEmployeeTimeLog();
+  const { 
+    timeLogs, 
+    pagination, 
+    searchParams, 
+    stats, 
+    loading, 
+    error, 
+    updateSearch, 
+    goToPage, 
+    refreshData 
+  } = useEmployeeTimeLog();
 
   const formatDate = (dateString: string) => formatApiDate(dateString);
   const formatTime = (timeString: string) => formatApiTime(timeString);
@@ -134,10 +146,17 @@ export default function EmployeeTimeLogsPage() {
               <p className="text-gray-600 text-sm mt-1">Your recorded working sessions</p>
             </div>
             <div className="text-sm text-gray-500">
-              Total: {timeLogs.length} logs
+              Page {pagination.pageNumber} of {pagination.totalPages}
             </div>
           </div>
         </div>
+
+        {/* Filters */}
+        <TimeLogFilters
+          searchParams={searchParams}
+          onFiltersChange={updateSearch}
+          totalCount={pagination.totalCount}
+        />
 
         {timeLogs.length === 0 ? (
           <EmptyState 
@@ -246,6 +265,19 @@ export default function EmployeeTimeLogsPage() {
               </TableBody>
             </Table>
           </div>
+        )}
+
+        {/* Pagination */}
+        {timeLogs.length > 0 && (
+          <TimeLogPagination
+            currentPage={pagination.pageNumber}
+            totalPages={pagination.totalPages}
+            hasNextPage={pagination.hasNextPage}
+            hasPreviousPage={pagination.hasPreviousPage}
+            onPageChange={goToPage}
+            totalCount={pagination.totalCount}
+            pageSize={pagination.pageSize}
+          />
         )}
       </div>
     </div>

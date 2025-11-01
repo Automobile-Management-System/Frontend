@@ -12,10 +12,25 @@ export interface EmployeeTimeLogDTO {
   modifications: string[];
 }
 
-export interface EmployeeTimeLogResponse {
+export interface PaginatedEmployeeTimeLogResponse {
   success: boolean;
-  count: number;
+  pagination: {
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
   data: EmployeeTimeLogDTO[];
+}
+
+export interface TimeLogSearchParams {
+  pageNumber?: number;
+  pageSize?: number;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface TimeLogStats {
