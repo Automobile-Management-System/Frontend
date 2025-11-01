@@ -26,7 +26,7 @@ const customStyles = `
 `;
 
 // Inject styles
-if (typeof document !== 'undefined') {
+if (typeof document !== "undefined") {
   const styleSheet = document.createElement("style");
   styleSheet.innerText = customStyles;
   document.head.appendChild(styleSheet);
@@ -287,7 +287,8 @@ const AppointmentsPage = () => {
                 No appointments yet
               </h3>
               <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                Start your journey with us by booking your first service appointment. Our expert team is ready to help you.
+                Start your journey with us by booking your first service
+                appointment. Our expert team is ready to help you.
               </p>
               <Button
                 onClick={() => setShowBookingForm(true)}
@@ -304,7 +305,7 @@ const AppointmentsPage = () => {
                 className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group"
                 style={{
                   animationDelay: `${index * 100}ms`,
-                  animation: 'fadeInUp 0.6s ease-out both'
+                  animation: "fadeInUp 0.6s ease-out both",
                 }}
               >
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
@@ -313,10 +314,16 @@ const AppointmentsPage = () => {
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#1e3a5f] transition-colors">
-                          {appointment.services.map((s) => s.serviceName).join(", ")}
+                          {appointment.services
+                            .map((s) => s.serviceName)
+                            .join(", ")}
                         </h3>
                         <div className="flex items-center gap-2">
-                          <Badge className={`${getStatusColor(appointment.status)} font-medium px-3 py-1`}>
+                          <Badge
+                            className={`${getStatusColor(
+                              appointment.status
+                            )} font-medium px-3 py-1`}
+                          >
                             {getStatusLabel(appointment.status)}
                           </Badge>
                           <span className="text-sm text-gray-500">
@@ -325,7 +332,9 @@ const AppointmentsPage = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-500 mb-1">Total Amount</p>
+                        <p className="text-sm text-gray-500 mb-1">
+                          Total Amount
+                        </p>
                         <p className="text-2xl font-bold text-green-600">
                           $
                           {appointment.services
@@ -342,7 +351,9 @@ const AppointmentsPage = () => {
                           <Calendar className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Date</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Date
+                          </p>
                           <p className="text-sm font-semibold text-gray-900">
                             {formatApiDate(appointment.dateTime)}
                           </p>
@@ -353,7 +364,9 @@ const AppointmentsPage = () => {
                           <Clock className="h-5 w-5 text-green-600" />
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Time</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Time
+                          </p>
                           <p className="text-sm font-semibold text-gray-900">
                             {formatApiTime(appointment.dateTime)}
                           </p>
@@ -364,7 +377,9 @@ const AppointmentsPage = () => {
                           <Car className="h-5 w-5 text-purple-600" />
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Vehicle</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Vehicle
+                          </p>
                           <p className="text-sm font-semibold text-gray-900">
                             {getVehicleNumber(appointment)}
                           </p>
@@ -374,7 +389,9 @@ const AppointmentsPage = () => {
 
                     {/* Services */}
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-gray-700">Services Included:</p>
+                      <p className="text-sm font-medium text-gray-700">
+                        Services Included:
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {appointment.services.map((service, index) => (
                           <div
@@ -382,33 +399,15 @@ const AppointmentsPage = () => {
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300"
                           >
                             <span>{service.serviceName}</span>
-                            <span className="text-green-600 font-bold">${service.basePrice}</span>
+                            <span className="text-green-600 font-bold">
+                              ${service.basePrice}
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    {String(appointment.status || "").toLowerCase() === "pending" && (
-                      <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Reschedule
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
+                    {/* Action Buttons removed as requested */}
                   </div>
                 </div>
               </div>
