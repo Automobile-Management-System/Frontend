@@ -308,17 +308,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 <SelectValue placeholder="Choose a time slot" />
               </SelectTrigger>
               <SelectContent>
-                {getAvailableSlots().map((slot) => {
-                  const availabilitySlot = availability.find(
-                    (a) => a.slot === slot.value
-                  );
-                  return (
-                    <SelectItem key={slot.value} value={slot.value}>
-                      {slot.label} ({availabilitySlot?.count || 0} slots
-                      available)
-                    </SelectItem>
-                  );
-                })}
+                {getAvailableSlots().map((slot) => (
+                  <SelectItem key={slot.value} value={slot.value}>
+                    {slot.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
