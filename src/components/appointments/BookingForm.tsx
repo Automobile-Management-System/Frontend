@@ -34,7 +34,7 @@ interface BookingFormProps {
   onSuccessAction: () => void;
 }
 
-// Map UI labels to backend slot indices
+// Map UI labels to backend slot indices (0,1,3,4)
 const timeSlots = [
   { index: 0, value: "08:00-10:00", label: "8:00 AM - 10:00 AM" },
   { index: 1, value: "10:00-12:00", label: "10:00 AM - 12:00 PM" },
@@ -53,7 +53,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
-  const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [selectedVehicle, setSelectedVehicle] = useState(""); // stores vehicle ID as string
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -140,48 +140,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         return;
       }
 
-      // Find the selected vehicle's ID
-      const selectedVehicleObj = vehicles.find((v) => {
-        const plate = v.registrationNumber || v.licensePlate || "N/A";
-        return plate === selectedVehicle;
-      });
-
-      if (!selectedVehicleObj) {
-        setError("Selected vehicle not found. Please refresh and try again.");
-        return;
-      }
-
-      // Try to get the vehicle ID from various possible field names
-      const vehicleId =
-        selectedVehicleObj.vehicleId ||
-        selectedVehicleObj.id ||
-        selectedVehicleObj.VehicleId ||
-        selectedVehicleObj.ID ||
-        selectedVehicleObj.vehicleID ||
-        selectedVehicleObj.Id ||
-        selectedVehicleObj.customerVehicleId;
-
-      if (!vehicleId) {
-        console.error("Vehicle ID not found for vehicle:", selectedVehicleObj);
-        console.error(
-          "All vehicle properties:",
-          Object.keys(selectedVehicleObj)
-        );
-        console.error("All vehicle values:", Object.values(selectedVehicleObj));
-        setError(
-          `Vehicle ID not found. Available properties: ${Object.keys(
-            selectedVehicleObj
-          ).join(", ")}`
-        );
-        return;
-      }
-
-      // Ensure vehicleId is a number if it's a string number
-      const finalVehicleId =
-        typeof vehicleId === "string" ? parseInt(vehicleId, 10) : vehicleId;
-
+      // Selected value is the vehicle ID
+      const finalVehicleId = parseInt(selectedVehicle, 10);
       if (isNaN(finalVehicleId)) {
-        setError(`Invalid vehicle ID format: ${vehicleId}`);
+        setError("Please select a valid vehicle.");
         return;
       }
 
@@ -194,7 +156,6 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
       console.log("Submitting appointment:", dto);
       console.log("Selected vehicle ID:", finalVehicleId);
-      console.log("Selected vehicle object:", selectedVehicleObj);
       console.log("Available vehicles:", vehicles);
 
       await appointmentAPI.createAppointment(dto);
@@ -255,32 +216,40 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           <div>
             <Label className="text-base font-medium">Select Services</Label>
             <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
-              {services.map((service) => (
-                <div
-                  key={service.serviceId}
-                  className="flex items-center space-x-2"
-                >
-                  <Checkbox
-                    id={`service-${service.serviceId}`}
-                    checked={selectedServices.includes(service.serviceId)}
-                    onCheckedChange={() =>
-                      handleServiceToggle(service.serviceId)
-                    }
-                  />
-                  <label
-                    htmlFor={`service-${service.serviceId}`}
-                    className="flex-1 text-sm cursor-pointer"
-                  >
-                    <div className="flex justify-between">
-                      <span>{service.serviceName}</span>
-                      <span className="font-medium">${service.basePrice}</span>
-                    </div>
-                    <div className="text-gray-500 text-xs">
-                      {service.description}
-                    </div>
-                  </label>
+              {services.length === 0 ? (
+                <div className="text-sm text-gray-500">
+                  No services available at the moment.
                 </div>
-              ))}
+              ) : (
+                services.map((service) => (
+                  <div
+                    key={service.serviceId}
+                    className="flex items-center space-x-2"
+                  >
+                    <Checkbox
+                      id={`service-${service.serviceId}`}
+                      checked={selectedServices.includes(service.serviceId)}
+                      onCheckedChange={() =>
+                        handleServiceToggle(service.serviceId)
+                      }
+                    />
+                    <label
+                      htmlFor={`service-${service.serviceId}`}
+                      className="flex-1 text-sm cursor-pointer"
+                    >
+                      <div className="flex justify-between">
+                        <span>{service.serviceName}</span>
+                        <span className="font-medium">
+                          ${service.basePrice}
+                        </span>
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        {service.description}
+                      </div>
+                    </label>
+                  </div>
+                ))
+              )}
             </div>
             {selectedServices.length > 0 && (
               <div className="mt-2 text-sm font-medium">
@@ -288,7 +257,6 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               </div>
             )}
           </div>
-
           {/* Date Selection */}
           <div>
             <Label htmlFor="date">Select Date</Label>
@@ -340,63 +308,76 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             })()}
           </div>
 
-          {/* Vehicle Selection */}
+          {/* Vehicle Selection (by ID) */}
           <div>
             <Label>Select Vehicle</Label>
-            {vehicles.length === 0 ? (
-              <div className="text-sm text-gray-500 p-3 border rounded-md">
-                No vehicles found. Please add a vehicle first in your dashboard.
-              </div>
-            ) : (
-              <Select
-                value={selectedVehicle}
-                onValueChange={setSelectedVehicle}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose your vehicle" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicles.map((vehicle, index) => {
-                    const plate =
-                      vehicle.registrationNumber ||
-                      vehicle.licensePlate ||
-                      "N/A";
-                    // Try to find any ID-like field
-                    const possibleId =
-                      vehicle.vehicleId ||
-                      vehicle.id ||
-                      vehicle.VehicleId ||
-                      vehicle.ID ||
-                      vehicle.vehicleID ||
-                      vehicle.Id ||
-                      vehicle.customerVehicleId;
-
-                    console.log(
-                      "Vehicle mapping - Plate:",
-                      plate,
-                      "ID:",
-                      possibleId,
-                      "Full object:",
-                      vehicle
-                    );
-
-                    // Use the plate as value but store the ID for reference
-                    return (
-                      <SelectItem key={index} value={plate}>
-                        {vehicle.make || vehicle.brand || "Unknown"}{" "}
-                        {vehicle.model} ({plate})
-                        {possibleId && (
-                          <span className="text-xs text-gray-500">
-                            {" "}
-                            - ID: {possibleId}
-                          </span>
-                        )}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            )}
+            {(() => {
+              if (vehicles.length === 0) {
+                return (
+                  <div className="text-sm text-gray-500 p-3 border rounded-md">
+                    No vehicles found. Please add a vehicle first in your
+                    dashboard.
+                  </div>
+                );
+              }
+              const vehiclesWithId = vehicles.filter(
+                (v) =>
+                  v.vehicleId ||
+                  v.id ||
+                  v.VehicleId ||
+                  v.ID ||
+                  v.vehicleID ||
+                  v.Id ||
+                  v.customerVehicleId
+              );
+              if (vehiclesWithId.length === 0) {
+                return (
+                  <div className="text-sm text-yellow-700 p-3 border rounded-md bg-yellow-50 border-yellow-200">
+                    We found your vehicles but couldn’t resolve their IDs for
+                    booking. Please refresh or contact support.
+                  </div>
+                );
+              }
+              return (
+                <Select
+                  value={selectedVehicle}
+                  onValueChange={setSelectedVehicle}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your vehicle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehiclesWithId.map((vehicle, index) => {
+                      const plate =
+                        vehicle.registrationNumber ||
+                        vehicle.licensePlate ||
+                        "N/A";
+                      const possibleId =
+                        vehicle.vehicleId ||
+                        vehicle.id ||
+                        vehicle.VehicleId ||
+                        vehicle.ID ||
+                        vehicle.vehicleID ||
+                        vehicle.Id ||
+                        vehicle.customerVehicleId;
+                      const stableKey = String(possibleId ?? plate ?? index);
+                      return (
+                        <SelectItem key={stableKey} value={`${possibleId}`}>
+                          {vehicle.make || vehicle.brand || "Unknown"}{" "}
+                          {vehicle.model} ({plate})
+                          {possibleId && (
+                            <span className="text-xs text-gray-500">
+                              {" "}
+                              - ID: {possibleId}
+                            </span>
+                          )}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              );
+            })()}
           </div>
 
           <div className="flex gap-3 pt-4">

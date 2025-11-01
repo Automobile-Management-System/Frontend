@@ -46,7 +46,9 @@ export interface CreateAppointmentDto {
   // 0 -> 08:00-10:00, 1 -> 10:00-12:00, 2 -> 13:00-15:00, 3 -> 15:00-17:00
   slotsTime: number;
   serviceIds: number[];
-  vehicleId: number;
+  // Prefer vehicleId when available; alternatively identify by registration number
+  vehicleId?: number;
+  registrationNumber?: string;
 }
 
 export interface AppointmentResponse {
