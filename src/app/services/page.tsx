@@ -20,7 +20,7 @@ interface PagedResult<T> {
   totalPages: number;
 }
 
-const BACKEND_URL = "http://localhost:5001";
+const BACKEND_URL = "http://localhost:5000";
 
 export default function ViewServicesPage() {
   const [services, setServices] = React.useState<ViewServiceDto[]>([]);

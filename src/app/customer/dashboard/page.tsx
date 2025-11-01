@@ -22,7 +22,7 @@ import { useRouter } from "next/navigation";
 import { VehicleDialog } from "../../../../components/customer/VehicleDialog";
 import { toast } from "sonner"; 
 
-const API_BASE = "http://localhost:5001/api/CustomerDashboard";
+const API_BASE = "http://localhost:5000/api/CustomerDashboard";
 
 export default function CustomerDashboard() {
   const router = useRouter();

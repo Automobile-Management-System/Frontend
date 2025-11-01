@@ -24,7 +24,7 @@ interface UserAccount {
   status: "Active" | "Inactive";
 }
 
-const BASE_URL = "http://localhost:5001/api/usermanagement";
+const BASE_URL = "http://localhost:5000/api/usermanagement";
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserAccount[]>([]);

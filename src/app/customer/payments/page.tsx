@@ -85,7 +85,7 @@ const PaymentsPage = () => {
     // Helper function for fetching
     const fetchInvoices = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/payments", {
+        const response = await fetch("http://localhost:5000/api/payments", {
           credentials: "include",
         });
         if (!response.ok) {
@@ -184,7 +184,7 @@ const PaymentsPage = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:5001/api/payments/create-checkout-session",
+        "http://localhost:5000/api/payments/create-checkout-session",
         {
           method: "POST",
           headers: {

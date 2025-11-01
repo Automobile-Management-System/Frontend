@@ -82,7 +82,7 @@ export default function SignUp() {
 
     try {
       const response = await fetch(
-        'http://localhost:5001/api/Auth/register/v1',
+        'http://localhost:5000/api/Auth/register/v1',
         {
           method: 'POST',
           headers: {
@@ -124,7 +124,7 @@ export default function SignUp() {
 
   const handleGoogleSignIn = () => {
     // This is the same endpoint. Your backend handles login OR registration.
-    window.location.href = 'http://localhost:5001/api/Auth/google-login';
+    window.location.href = 'http://localhost:5000/api/Auth/google-login';
   };
 
   return (
