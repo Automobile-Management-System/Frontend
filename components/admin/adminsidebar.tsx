@@ -40,7 +40,7 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
 
     { icon: User2, label: 'User Management', path: '/admin/user_management', badge: null },
     { icon: Wrench, label: 'Service Management', path: '/admin/service_management', badge: null },
-    { icon: CalendarDays, label: 'Appointments', path: '/admin/appointment_Management', badge: null },
+    { icon: CalendarDays, label: 'Appointments', path: '/admin/ServiceAppointment', badge: null },
     { icon: FileInput, label: 'Modification Requests', path: '/admin/modification_requests', badge: null },
     { icon: FileInput, label: 'Payment', path: '/admin/payment', badge: null },
     { icon: UserCircle, label: 'Profile', path: '/admin/profile', badge: null },
