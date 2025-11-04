@@ -86,55 +86,47 @@ export default function ModificationRequestsPage() {
     }
   };
 
-  // Fetch base employees list (without counts - counts fetched per date)
-  const fetchEmployees = async () => {
-    try {
-      // Assuming you have an endpoint for all employees; adjust if needed
-      // For now, using the same endpoint but ignoring counts initially
-      const res = await fetchWithAuth(`${API_BASE_URL}/admin/modification-requests/assigned-appointments`);
-      // Set with assignedCount: 0 initially
-      setEmployees((res || []).map((emp: any) => ({ ...emp, assignedCount: 0 })));
-    } catch (err) {
-      console.error('Failed to fetch employees', err);
-    }
-  };
+  
 
-  // Fetch daily assignments count for each employee (for a specific date)
-  const fetchDailyEmployeeCounts = async (date: string) => {
-    if (!employees.length) return;
-    try {
-      const employeesWithDailyCount = await Promise.all(
-        employees.map(async (emp) => {
-          const assignments = await fetchWithAuth(
-            `${API_BASE_URL}/admin/service-appointments/employee-assignments?employeeId=${emp.employeeId}&date=${encodeURIComponent(date)}`
-          );
-          return {
-            ...emp,
-            assignedCount: assignments.length || 0
-          };
-        })
-      );
-      setEmployees(employeesWithDailyCount);
-    } catch (err) {
-      console.error('Failed to fetch daily employee counts', err);
-      // Fallback: keep counts as 0
-    }
-  };
 
-  useEffect(() => {
-    fetchAllData();
-    fetchEmployees();
-  }, [filterStatus]);
+// ADD this single function instead:
+const fetchEmployeesWithDailyCount = async (date: string) => {
+  try {
+    const res = await fetchWithAuth(
+      `${API_BASE_URL}/admin/modification-requests/all-employees-daily-count?date=${encodeURIComponent(date)}`
+    );
+    setEmployees(res || []);
+  } catch (err) {
+    console.error('Failed to fetch employees with daily counts', err);
+  }
+};
 
-  const handleReview = async (request: ModificationRequest) => {
-    setSelectedRequest(request);
-    setEstimatedCost(request.amount.toString());
-    setSelectedAssignee(request.assignee === 'Unassigned' ? null : employees.find(e => e.employeeName === request.assignee)?.employeeId || null);
-    setDialogOpen(true);
-    // Fetch daily counts for this request's date
-    const requestDate = new Date(request.dateTime).toISOString().split('T')[0]; // YYYY-MM-DD format
-    await fetchDailyEmployeeCounts(requestDate);
-  };
+// UPDATE useEffect - remove fetchEmployees() call:
+useEffect(() => {
+  fetchAllData();
+  // Don't fetch employees here anymore
+}, [filterStatus]);
+// UPDATE handleReview function:
+const handleReview = async (request: ModificationRequest) => {
+  setSelectedRequest(request);
+  setEstimatedCost(request.amount.toString());
+  setSelectedAssignee(request.assignee === 'Unassigned' ? null : null);
+  setDialogOpen(true);
+  
+  // Fetch employees with their daily counts for this request's date
+  const requestDate = new Date(request.dateTime).toISOString().split('T')[0];
+  await fetchEmployeesWithDailyCount(requestDate);
+  
+  // Set the current assignee if exists (after employees are loaded)
+  if (request.assignee !== 'Unassigned') {
+    setTimeout(() => {
+      const assignedEmp = employees.find(e => e.employeeName === request.assignee);
+      if (assignedEmp) {
+        setSelectedAssignee(assignedEmp.employeeId);
+      }
+    }, 100);
+  }
+};
 
   const handleApprove = async () => {
     if (!selectedRequest) return;
