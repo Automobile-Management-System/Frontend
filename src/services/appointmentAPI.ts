@@ -32,40 +32,92 @@ const getFetchOptions = (method: string = "GET", body?: any) => {
 
 export const appointmentAPI = {
   async getServices(): Promise<Service[]> {
-    // Use the Services endpoint required for booking (must include serviceId)
-    const url = `${config.apiBaseUrl}/Services`;
-    const response = await fetch(url, getFetchOptions());
+    // Fetch ALL services (backend endpoint is paginated by default)
+    const pageSize = 100;
+    let pageNumber = 1;
+    const maxPages = 50; // safety cap
+    const all: Service[] = [];
 
-    if (!response.ok) {
-      throw new ApiError("Failed to fetch services", response.status);
+    while (pageNumber <= maxPages) {
+      const url = `${config.apiBaseUrl}/Services?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+      const response = await fetch(url, getFetchOptions());
+
+      if (!response.ok) {
+        // Fallback: if first paged request fails, try non-paged once
+        if (pageNumber === 1) {
+          const fallback = await fetch(
+            `${config.apiBaseUrl}/Services`,
+            getFetchOptions()
+          );
+          if (!fallback.ok) {
+            throw new ApiError("Failed to fetch services", response.status);
+          }
+          const fbData = await fallback.json();
+          const fbRaw: any =
+            (fbData && (fbData.items ?? fbData.data ?? fbData.services)) ??
+            fbData;
+          const fbArr: any[] = Array.isArray(fbRaw) ? fbRaw : [];
+          const fbNorm = fbArr
+            .map((s) => {
+              const id = Number(
+                s?.serviceId ?? s?.ServiceId ?? s?.id ?? s?.ID ?? s?.serviceID
+              );
+              if (!Number.isFinite(id)) return null;
+              return {
+                serviceId: id,
+                serviceName: s?.serviceName ?? s?.name ?? "Unnamed Service",
+                description: s?.description ?? "",
+                basePrice: Number(s?.basePrice ?? s?.price ?? 0) || 0,
+              } as Service;
+            })
+            .filter(Boolean) as Service[];
+          return fbNorm;
+        }
+        throw new ApiError("Failed to fetch services", response.status);
+      }
+
+      // Normalize paged response
+      const data = await response.json();
+      const raw: any =
+        (data && (data.items ?? data.data ?? data.services)) ?? data;
+      const arr: any[] = Array.isArray(raw) ? raw : [];
+
+      const normalized: Service[] = arr
+        .map((s) => {
+          const id = Number(
+            s?.serviceId ?? s?.ServiceId ?? s?.id ?? s?.ID ?? s?.serviceID
+          );
+          if (!Number.isFinite(id)) return null;
+          return {
+            serviceId: id,
+            serviceName: s?.serviceName ?? s?.name ?? "Unnamed Service",
+            description: s?.description ?? "",
+            basePrice: Number(s?.basePrice ?? s?.price ?? 0) || 0,
+          } as Service;
+        })
+        .filter(Boolean) as Service[];
+
+      all.push(...normalized);
+
+      // Continue if we have more pages
+      const totalPages = Number(
+        data?.totalPages ??
+          (Number.isFinite(data?.totalCount)
+            ? Math.ceil(Number(data.totalCount) / pageSize)
+            : NaN)
+      );
+
+      if (Number.isFinite(totalPages)) {
+        if (pageNumber >= totalPages) break;
+        pageNumber += 1;
+      } else {
+        // No total pages info; stop if fewer than pageSize were returned
+        if (arr.length < pageSize) break;
+        pageNumber += 1;
+      }
     }
 
-    // Normalize response; ensure we return items with a numeric serviceId
-    const data = await response.json();
-    const raw: any =
-      (data && (data.items ?? data.data ?? data.services)) ?? data;
-
-    const arr: any[] = Array.isArray(raw) ? raw : [];
-    const normalized: Service[] = arr
-      .map((s) => {
-        const id = Number(
-          s?.serviceId ?? s?.ServiceId ?? s?.id ?? s?.ID ?? s?.serviceID
-        );
-        if (!Number.isFinite(id)) return null;
-        return {
-          serviceId: id,
-          serviceName: s?.serviceName ?? s?.name ?? "Unnamed Service",
-          description: s?.description ?? "",
-          basePrice: Number(s?.basePrice ?? s?.price ?? 0) || 0,
-        } as Service;
-      })
-      .filter(Boolean) as Service[];
-
-    if (!Array.isArray(raw)) {
-      console.warn("Unexpected services response shape:", data);
-    }
-
-    return normalized;
+    return all;
   },
 
   async getVehicles(): Promise<Vehicle[]> {
