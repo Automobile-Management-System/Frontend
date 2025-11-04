@@ -1,12 +1,10 @@
-// src/types/index.ts
-
 export interface Vehicle {
   vehicleId: number;
   model: string;
   registrationNumber: string;
 }
 
-export type RequestStatus = 'Pending' | 'In Progress' | 'Completed' | 'Rejected';
+export type RequestStatus = 'Pending' | 'Upcoming' | 'In Progress' | 'Completed' | 'Rejected';
 
 export interface ModificationRequest {
   modificationId: number;
@@ -17,8 +15,7 @@ export interface ModificationRequest {
   createdDate: string;
   createdDateString: string;
   createdTimeString: string;
-  requestStatus: RequestStatus;
+  requestStatus: RequestStatus; // ← AppointmentStatus from backend
   appointmentId?: number;
-  appointmentSummary?: string;
   userId: number;
 }

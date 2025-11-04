@@ -8,16 +8,19 @@ import AddRequestModal from '../../../../components/customer/AddRequestModal';
 const STATUS_TABS = [
   { label: 'All', value: 'all' },
   { label: 'Pending', value: 'Pending' },
+  { label: 'Upcoming', value: 'Upcoming' },
   { label: 'In Progress', value: 'InProgress' },
   { label: 'Completed', value: 'Completed' },
   { label: 'Rejected', value: 'Rejected' },
 ];
 
-// Map backend status to readable format
+// Map backend AppointmentStatus to readable format
 const mapStatus = (status: string): string => {
   switch (status) {
     case 'InProgress':
       return 'In Progress';
+    case 'Upcoming':
+      return 'Upcoming';
     default:
       return status;
   }
@@ -38,9 +41,10 @@ export default function ModificationsPage() {
       if (!res.ok) throw new Error(`Error: ${res.status}`);
       const data = await res.json();
 
+      // Map backend appointment status into readable form
       const formatted = data.map((r: any) => ({
         ...r,
-        requestStatus: mapStatus(r.requestStatus),
+        requestStatus: mapStatus(r.requestStatus), // AppointmentStatus → requestStatus
         createdDateString: new Date(r.createdDate).toLocaleDateString('en-GB', {
           day: '2-digit',
           month: 'short',
