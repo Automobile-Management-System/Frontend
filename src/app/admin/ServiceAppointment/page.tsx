@@ -406,50 +406,50 @@ export default function ServiceAppointmentsPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 pt-6">
+   {/* Pagination */}
+{totalPages > 1 && (
+  <div className="flex justify-end gap-2 pt-6">
+    <Button
+      variant="outline"
+      onClick={() => fetchAppointments(pageNumber - 1)}
+      disabled={pageNumber === 1}
+    >
+      Previous
+    </Button>
+    
+    {[...Array(totalPages)].map((_, i) => {
+      const page = i + 1;
+      if (
+        page === 1 ||
+        page === totalPages ||
+        (page >= pageNumber - 1 && page <= pageNumber + 1)
+      ) {
+        return (
           <Button
-            variant="outline"
-            onClick={() => fetchAppointments(pageNumber - 1)}
-            disabled={pageNumber === 1}
+            key={i}
+            variant={page === pageNumber ? 'default' : 'outline'}
+            onClick={() => fetchAppointments(page)}
+            className={page === pageNumber ? 'bg-[#0B2E66]' : ''}
           >
-            Previous
+            {page}
           </Button>
-          
-          {[...Array(totalPages)].map((_, i) => {
-            const page = i + 1;
-            // Show first page, last page, current page, and pages around current
-            if (
-              page === 1 ||
-              page === totalPages ||
-              (page >= pageNumber - 1 && page <= pageNumber + 1)
-            ) {
-              return (
-                <Button
-                  key={i}
-                  variant={page === pageNumber ? 'default' : 'outline'}
-                  onClick={() => fetchAppointments(page)}
-                  className={page === pageNumber ? 'bg-[#0B2E66]' : ''}
-                >
-                  {page}
-                </Button>
-              );
-            } else if (page === pageNumber - 2 || page === pageNumber + 2) {
-              return <span key={i} className="px-2">...</span>;
-            }
-            return null;
-          })}
-          
-          <Button
-            variant="outline"
-            onClick={() => fetchAppointments(pageNumber + 1)}
-            disabled={pageNumber === totalPages}
-          >
-            Next
-          </Button>
-        </div>
-      )}
+        );
+      } else if (page === pageNumber - 2 || page === pageNumber + 2) {
+        return <span key={i} className="px-2">...</span>;
+      }
+      return null;
+    })}
+    
+    <Button
+      variant="outline"
+      onClick={() => fetchAppointments(pageNumber + 1)}
+      disabled={pageNumber === totalPages}
+    >
+      Next
+    </Button>
+  </div>
+)}
+
 
       {/* Assign Employee Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -515,7 +515,7 @@ export default function ServiceAppointmentsPage() {
             <Button
               onClick={handleAssignEmployee}
               disabled={!selectedEmployeeId || submitting}
-              className="bg-[#33CC7A] hover:bg-green-600"
+              className="bg-green-600 hover:bg-green-600"
             >
               {submitting ? (
                 <>
@@ -530,11 +530,20 @@ export default function ServiceAppointmentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Toast Alert */}
+     {/* Toast Alert */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <Alert className={toast.type === 'success' ? 'bg-[#33CC7A] text-white border-[#33CC7A]' : 'bg-[#E63946] text-white border-[#E63946]'}>
-            <AlertDescription className="font-semibold text-white text-base">
+          <Alert className={toast.type === 'success' ? 'bg-[#D1FAE5] border-[#10B981]' : 'bg-[#FEE2E2] border-[#E63946]'}>
+            <AlertDescription className={`flex items-center gap-2 font-semibold text-base ${toast.type === 'success' ? 'text-[#047857]' : 'text-[#E63946]'}`}>
+              {toast.type === 'success' ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
               {toast.message}
             </AlertDescription>
           </Alert>
