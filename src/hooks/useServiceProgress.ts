@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { serviceProgressAPI } from '../services/serviceProgressAPI';
-import { ServiceProgressDto, AppointmentStatus, TimerResponseDto } from '../types/serviceProgress';
+import { 
+  ServiceProgressDto, 
+  AppointmentStatus, 
+  TimerResponseDto,
+  AppointmentStatusFromEnum
+} from '../types/serviceProgress';
 
 export const useServiceProgress = (employeeId: number) => {
   const [serviceProgress, setServiceProgress] = useState<ServiceProgressDto[]>([]);
@@ -179,7 +184,7 @@ export const useServiceProgress = (employeeId: number) => {
 
   const updateStatus = useCallback(async (
     appointmentId: number, 
-    newStatus: AppointmentStatus, 
+    newStatus: AppointmentStatus | number, 
     notes?: string
   ): Promise<void> => {
     try {
@@ -187,9 +192,14 @@ export const useServiceProgress = (employeeId: number) => {
       
       // Update the local state for all status changes to keep services visible
       setServiceProgress(prevServices => {
+        // Convert numeric status to string status for local state
+        const statusString = typeof newStatus === 'number' 
+          ? AppointmentStatusFromEnum[newStatus as keyof typeof AppointmentStatusFromEnum] || 'Pending'
+          : newStatus;
+          
         const updatedServices = prevServices.map(service => 
           service.appointmentId === appointmentId 
-            ? { ...service, status: newStatus as AppointmentStatus }
+            ? { ...service, status: statusString as AppointmentStatus }
             : service
         );
         

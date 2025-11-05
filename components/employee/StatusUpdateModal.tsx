@@ -11,7 +11,7 @@ interface StatusUpdateModalProps {
   onClose: () => void;
   onUpdate: (
     appointmentId: number,
-    newStatus: AppointmentStatus,
+    newStatus: AppointmentStatus | number,
     notes?: string
   ) => void;
 }
@@ -21,26 +21,21 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
   onClose,
   onUpdate,
 }) => {
-  const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus>(
-    appointment.status
-  );
+  const [selectedStatus, setSelectedStatus] = useState<
+    AppointmentStatus | number
+  >(appointment.status);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const statusOptions: {
-    value: AppointmentStatus;
+    value: AppointmentStatus | number;
     label: string;
     description: string;
   }[] = [
     {
       value: "Pending",
-      label: "Pending",
-      description: "Service is scheduled but not started",
-    },
-    {
-      value: "InProgress",
-      label: "In Progress",
-      description: "Currently working on the service",
+      label: "Upcoming",
+      description: "Service is scheduled and upcoming",
     },
     {
       value: "Completed",
@@ -48,14 +43,9 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
       description: "Service has been finished",
     },
     {
-      value: "Cancelled",
-      label: "Cancelled",
-      description: "Service has been cancelled",
-    },
-    {
-      value: "Rejected",
-      label: "Rejected",
-      description: "Service request was rejected",
+      value: "InProgress",
+      label: "In Progress",
+      description: "Currently working on the service",
     },
   ];
 
@@ -63,10 +53,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     setIsUpdating(true);
     setError(null);
     try {
-      await onUpdate(
-        appointment.appointmentId,
-        selectedStatus
-      );
+      await onUpdate(appointment.appointmentId, selectedStatus);
     } catch (err) {
       console.error("Status update error:", err);
       setError(err instanceof Error ? err.message : "Failed to update status");
@@ -82,9 +69,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-width">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-bold text-white">
-                Update Status
-              </h3>
+              <h3 className="text-lg font-bold text-white">Update Status</h3>
               <p className="text-blue-100 text-sm">
                 {appointment.serviceTitle}
               </p>
@@ -131,9 +116,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-600 truncate">{appointment.customerName}</p>
+                <p className="text-sm text-gray-600 truncate">
+                  {appointment.customerName}
+                </p>
                 <p className="text-xs text-gray-500">
-                  Current: <span className="font-medium">{appointment.status}</span>
+                  Current:{" "}
+                  <span className="font-medium">{appointment.status}</span>
                 </p>
               </div>
             </div>
@@ -159,9 +147,16 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                     name="status"
                     value={option.value}
                     checked={selectedStatus === option.value}
-                    onChange={(e) =>
-                      setSelectedStatus(e.target.value as AppointmentStatus)
-                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Try to parse as number first, fallback to string
+                      const parsedValue = !isNaN(Number(value))
+                        ? Number(value)
+                        : value;
+                      setSelectedStatus(
+                        parsedValue as AppointmentStatus | number
+                      );
+                    }}
                     className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500"
                   />
                   <div className="flex-1 min-w-0">
