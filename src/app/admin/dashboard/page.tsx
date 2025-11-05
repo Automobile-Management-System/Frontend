@@ -1,438 +1,492 @@
-"use client";
-import React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Users,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  ArrowRight,
-  AlertCircle,
-  UserCheck,
-  Wrench,
-  RefreshCw,
-  Loader2,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+'use client';
 
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  PointElement,
   LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
-} from "chart.js";
-import { Line, Bar } from "react-chartjs-2";
-
-import { useAdminDashboard } from "@/hooks/useAdminDashboard";
-import {
-  formatCurrency,
-  formatPercentage,
-  formatTimeAgo,
-  getAlertStyles,
-} from "@/lib/utils/formatters";
+} from 'chart.js';
+import { 
+  Users, 
+  Calendar, 
+  DollarSign, 
+  UserCheck, 
+  Wrench, 
+  TrendingUp, 
+  FileEdit,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Loader2
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  PointElement,
   LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend
 );
 
+// Interfaces matching backend DTOs
+interface AdminDashboardOverviewDto {
+  totalRevenue: number;
+  totalUsers: number;
+  totalCustomers: number;
+  totalAppointments: number;
+}
+
+interface WeeklyRevenueDto {
+  days: string[];
+  revenueList: number[];
+}
+
+interface WeeklyAppointmentsDto {
+  days: string[];
+  appointments: number[];
+}
+
+interface RecentUserDto {
+  userId: number;
+  fullName: string;
+  email: string;
+  role: string;
+  profilePicture?: string;
+  registeredDate: string;
+}
+
+const API_BASE = 'http://localhost:5001/api';
+
 export default function DashboardPage() {
-  const { dashboardData, loading, error, markAlertAsRead, refreshData } =
-    useAdminDashboard();
+  const router = useRouter();
+  const [overview, setOverview] = useState<AdminDashboardOverviewDto | null>(null);
+  const [weeklyRevenue, setWeeklyRevenue] = useState<WeeklyRevenueDto | null>(null);
+  const [weeklyAppointments, setWeeklyAppointments] = useState<WeeklyAppointmentsDto | null>(null);
+  const [recentUsers, setRecentUsers] = useState<RecentUserDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
 
-  // Navigation handler
-  const handleNavigate = (tab: string) => {
-    console.log("Navigate to:", tab);
-    // Example: use Next.js router if needed
-    // router.push(`/admin/${tab}`)
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    
+    try {
+      const [overviewRes, revenueRes, appointmentsRes, usersRes] = await Promise.all([
+        fetch(`${API_BASE}/AdminDashboard/overview`, { credentials: 'include' }),
+        fetch(`${API_BASE}/AdminDashboard/weekly-revenue`, { credentials: 'include' }),
+        fetch(`${API_BASE}/AdminDashboard/weekly-appointments`, { credentials: 'include' }),
+        fetch(`${API_BASE}/AdminDashboard/recent-users?count=50`, { credentials: 'include' }),
+      ]);
+
+      if (overviewRes.ok) {
+        const data = await overviewRes.json();
+        console.log('Overview data:', data);
+        setOverview(data);
+      }
+      
+      if (revenueRes.ok) {
+        const data = await revenueRes.json();
+        console.log('Weekly revenue data:', data);
+        setWeeklyRevenue(data);
+      }
+      
+      if (appointmentsRes.ok) {
+        const data = await appointmentsRes.json();
+        console.log('Weekly appointments data:', data);
+        setWeeklyAppointments(data);
+      }
+      
+      if (usersRes.ok) {
+        const data = await usersRes.json();
+        console.log('Recent users data:', data);
+        setRecentUsers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  // Chart options
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { beginAtZero: true, grid: { color: "#e5e7eb" } },
-      x: { grid: { display: false } },
-    },
-  };
-
-  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-gray-600">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading dashboard data...</span>
+          <span>Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2 text-gray-600">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading dashboard...</span>
         </div>
       </div>
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <Button onClick={refreshData} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  if (!dashboardData) {
-    return <div>No data available</div>;
-  }
-
-  const { stats, charts, recentUsers, systemAlerts } = dashboardData;
-
-  // Provide default values in case of incomplete data
-  const safeStats = {
-    totalUsers: stats?.totalUsers ?? 0,
-    activeBookings: stats?.activeBookings ?? 0,
-    monthlyRevenue: stats?.monthlyRevenue ?? 0,
-    growthRate: stats?.growthRate ?? 0,
-    totalUsersChange: stats?.totalUsersChange ?? 0,
-    activeBookingsChange: stats?.activeBookingsChange ?? 0,
-    monthlyRevenueChange: stats?.monthlyRevenueChange ?? 0,
-    growthRateChange: stats?.growthRateChange ?? 0,
-  };
-
-  const safeCharts = {
-    weeklyRevenue: charts?.weeklyRevenue ?? [],
-    weeklyAppointments: charts?.weeklyAppointments ?? [],
-  };
-
-  const safeRecentUsers = recentUsers ?? [];
-  const safeSystemAlerts = systemAlerts ?? [];
-
-  // Stats configuration
-  const statsConfig = [
-    {
-      title: "Total Users",
-      value: safeStats.totalUsers.toString(),
-      change: formatPercentage(safeStats.totalUsersChange),
-      icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
-      trend: safeStats.totalUsersChange >= 0 ? "up" : "down",
-    },
-    {
-      title: "Active Bookings",
-      value: safeStats.activeBookings.toString(),
-      change: formatPercentage(safeStats.activeBookingsChange),
-      icon: Calendar,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
-      trend: safeStats.activeBookingsChange >= 0 ? "up" : "down",
-    },
-    {
-      title: "Monthly Revenue",
-      value: formatCurrency(safeStats.monthlyRevenue),
-      change: formatPercentage(safeStats.monthlyRevenueChange),
-      icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-      trend: safeStats.monthlyRevenueChange >= 0 ? "up" : "down",
-    },
-    {
-      title: "Growth Rate",
-      value: formatPercentage(safeStats.growthRate),
-      change: formatPercentage(safeStats.growthRateChange),
-      icon: TrendingUp,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
-      trend: safeStats.growthRateChange >= 0 ? "up" : "down",
-    },
-  ];
-
   // Chart data
-  const revenueData = {
-    labels: safeCharts.weeklyRevenue.map((item) => item.day),
+  const revenueChartData = weeklyRevenue ? {
+    labels: weeklyRevenue.days,
     datasets: [
       {
-        label: "Revenue",
-        data: safeCharts.weeklyRevenue.map((item) => item.value),
-        borderColor: "#3b82f6",
-        backgroundColor: "rgba(59,130,246,0.2)",
-        borderWidth: 2,
+        label: 'Revenue ($)',
+        data: weeklyRevenue.revenueList,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#3b82f6',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
       },
     ],
-  };
+  } : null;
 
-  const appointmentsData = {
-    labels: safeCharts.weeklyAppointments.map((item) => item.day),
+  const appointmentsChartData = weeklyAppointments ? {
+    labels: weeklyAppointments.days,
     datasets: [
       {
-        label: "Appointments",
-        data: safeCharts.weeklyAppointments.map((item) => item.value),
-        backgroundColor: "#8b5cf6",
+        label: 'Appointments',
+        data: weeklyAppointments.appointments,
+        backgroundColor: '#8b5cf6',
         borderRadius: 6,
       },
     ],
+  } : null;
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#fff',
+        titleColor: '#000',
+        bodyColor: '#000',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: '#e5e7eb',
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+      },
+    },
+  };
+
+  // Pagination
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = recentUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(recentUsers.length / usersPerPage);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return 'bg-red-100 text-red-700';
+      case 'employee':
+        return 'bg-blue-100 text-blue-700';
+      case 'customer':
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-semibold">Admin Dashboard</h2>
+          <h1 className="text-3xl font-semibold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-1">System overview and key metrics</p>
         </div>
-        <Button onClick={refreshData} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
+        <Button
+          onClick={() => fetchDashboardData(true)}
+          disabled={refreshing}
+          className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsConfig.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm">{stat.title}</CardTitle>
-                <div
-                  className={`h-8 w-8 rounded-full ${stat.bgColor} flex items-center justify-center`}
-                >
-                  <Icon className={`h-4 w-4 ${stat.color}`} />
+      {/* Overview Cards */}
+      {overview && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Users</p>
+                  <p className="text-3xl font-semibold mt-2">{overview.totalUsers}</p>
+                  <p className="text-xs text-gray-500 mt-1">All registered users</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p
-                  className={`text-xs mt-1 ${
-                    stat.trend === "up" ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {stat.change} from last month
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Revenue</p>
+                  <p className="text-3xl font-semibold mt-2">${(overview.totalRevenue / 1000).toFixed(1)}k</p>
+                  <p className="text-xs text-gray-500 mt-1">All time revenue</p>
+                </div>
+                <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Appointments</p>
+                  <p className="text-3xl font-semibold mt-2">{overview.totalAppointments}</p>
+                  <p className="text-xs text-gray-500 mt-1">All bookings</p>
+                </div>
+                <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Customers</p>
+                  <p className="text-3xl font-semibold mt-2">{overview.totalCustomers}</p>
+                  <p className="text-xs text-gray-500 mt-1">Active customers</p>
+                </div>
+                <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <UserCheck className="h-5 w-5 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="bg-white border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Weekly Revenue</CardTitle>
-            <CardDescription>Revenue trends for the past week</CardDescription>
+            <CardTitle className="text-lg font-semibold">Weekly Revenue</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Revenue trends for the past week</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <Line data={revenueData} options={chartOptions} />
+            {revenueChartData ? (
+              <Line data={revenueChartData} options={chartOptions} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p className="text-sm">No revenue data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Weekly Appointments</CardTitle>
-            <CardDescription>Booking volume for the past week</CardDescription>
+            <CardTitle className="text-lg font-semibold">Weekly Appointments</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Booking volume for the past week</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <Bar data={appointmentsData} options={chartOptions} />
+            {appointmentsChartData ? (
+              <Bar data={appointmentsChartData} options={chartOptions} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p className="text-sm">No appointment data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Users & Alerts */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent Users */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Users</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleNavigate("users")}
-              >
-                View All
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-            <CardDescription>Newly registered users</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {safeRecentUsers.length === 0 ? (
-              <p className="text-gray-500 text-sm">No recent users</p>
-            ) : (
-              safeRecentUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <UserCheck className="h-5 w-5 text-blue-600" />
+      {/* Recent Users */}
+      <Card className="bg-white border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Recent Users</CardTitle>
+          <CardDescription className="text-sm text-gray-500">Newly registered users</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {currentUsers.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">User</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Email</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Role</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Registered</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentUsers.map((user) => (
+                      <tr key={user.userId} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <UserCheck className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">{user.email}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">{formatDate(user.registeredDate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, recentUsers.length)} of {recentUsers.length} users
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={currentPage === page ? "bg-blue-600 text-white" : ""}
+                        >
+                          {page}
+                        </Button>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="outline" className="capitalize">
-                      {user.role.toLowerCase()}
-                    </Badge>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatTimeAgo(user.registeredAt)}
-                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* System Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>System Alerts</CardTitle>
-            <CardDescription>
-              Important notifications and actions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {safeSystemAlerts.length === 0 ? (
-              <p className="text-gray-500 text-sm">No active alerts</p>
-            ) : (
-              safeSystemAlerts
-                .filter((alert) => !alert.isRead)
-                .slice(0, 5)
-                .map((alert) => {
-                  const styles = getAlertStyles(alert.type);
-                  return (
-                    <div
-                      key={alert.id}
-                      className={`p-3 rounded-lg border ${styles.bg} ${
-                        !alert.isRead ? "border-l-4" : ""
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <AlertCircle
-                          className={`h-5 w-5 mt-0.5 ${styles.icon}`}
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm">{alert.message}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {alert.actionType && (
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="px-0 h-auto"
-                                onClick={() =>
-                                  handleNavigate(alert.actionType!)
-                                }
-                              >
-                                Take Action →
-                              </Button>
-                            )}
-                            {!alert.isRead && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="px-2 h-auto text-xs"
-                                onClick={() => markAlertAsRead(alert.id)}
-                              >
-                                Mark as Read
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-            )}
-            {safeSystemAlerts.filter((alert) => !alert.isRead).length > 5 && (
-              <Button variant="ghost" size="sm" className="w-full">
-                View All Alerts (
-                {safeSystemAlerts.filter((alert) => !alert.isRead).length})
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-48 text-gray-500">
+              <p className="text-sm">No users found</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="bg-white border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common administrative tasks</CardDescription>
+          <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+          <CardDescription className="text-sm text-gray-500">Common administrative tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button
               variant="outline"
-              className="h-auto py-4 flex flex-col gap-2"
-              onClick={() => handleNavigate("users")}
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              onClick={() => router.push('/admin/user_management')}
             >
-              <Users className="h-6 w-6" />
-              <span>Manage Users</span>
+              <Users className="h-8 w-8 text-blue-600" />
+              <span className="font-medium">Manage Users</span>
             </Button>
             <Button
               variant="outline"
-              className="h-auto py-4 flex flex-col gap-2"
-              onClick={() => handleNavigate("services")}
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+              onClick={() => router.push('/admin/service_management')}
             >
-              <Wrench className="h-6 w-6" />
-              <span>Manage Services</span>
+              <Wrench className="h-8 w-8 text-purple-600" />
+              <span className="font-medium">Manage Services</span>
             </Button>
             <Button
               variant="outline"
-              className="h-auto py-4 flex flex-col gap-2"
-              onClick={() => handleNavigate("analytics")}
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-green-50 hover:border-green-300 transition-colors"
+              onClick={() => router.push('/admin/analytics')}
             >
-              <TrendingUp className="h-6 w-6" />
-              <span>View Analytics</span>
+              <TrendingUp className="h-8 w-8 text-green-600" />
+              <span className="font-medium">View Analytics</span>
             </Button>
             <Button
               variant="outline"
-              className="h-auto py-4 flex flex-col gap-2"
-              onClick={() => alert("Export report functionality")}
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-orange-50 hover:border-orange-300 transition-colors"
+              onClick={() => router.push('/admin/modification_requests')}
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span>Export Reports</span>
+              <FileEdit className="h-8 w-8 text-orange-600" />
+              <span className="font-medium">Modification Requests</span>
             </Button>
           </div>
         </CardContent>
