@@ -153,7 +153,7 @@ export default function DashboardPage() {
     labels: weeklyRevenue.days,
     datasets: [
       {
-        label: 'Revenue ($)',
+        label: 'Revenue (Rs)',
         data: weeklyRevenue.revenueList,
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -242,13 +242,13 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Admin Dashboard</h1>
+          <h1 className="text-3xl font-semibold text-[#0B2E66]">Admin Dashboard</h1>
           <p className="text-gray-600 mt-1">System overview and key metrics</p>
         </div>
         <Button
           onClick={() => fetchDashboardData(true)}
           disabled={refreshing}
-          className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm"
+          className="bg-[#0B2E66] hover:bg-[#0a2757] text-white border-0 shadow-sm"
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
@@ -278,7 +278,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-3xl font-semibold mt-2">${(overview.totalRevenue / 1000).toFixed(1)}k</p>
+                  <p className="text-3xl font-semibold mt-2">Rs {overview.totalRevenue.toLocaleString()}</p>
                   <p className="text-xs text-gray-500 mt-1">All time revenue</p>
                 </div>
                 <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -371,7 +371,6 @@ export default function DashboardPage() {
                       <th className="text-left p-4 text-sm font-medium text-gray-700">User</th>
                       <th className="text-left p-4 text-sm font-medium text-gray-700">Email</th>
                       <th className="text-left p-4 text-sm font-medium text-gray-700">Role</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-700">Registered</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -391,7 +390,6 @@ export default function DashboardPage() {
                             {user.role}
                           </span>
                         </td>
-                        <td className="p-4 text-sm text-gray-600">{formatDate(user.registeredDate)}</td>
                       </tr>
                     ))}
                   </tbody>
