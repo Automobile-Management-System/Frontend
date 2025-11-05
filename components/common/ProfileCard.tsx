@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/app/context/AuthContext';
-import { User, Edit3, Save, X, Mail, Phone, MapPin, Calendar, Shield, Briefcase, Car, Image, AlertCircle, Lock } from 'lucide-react';
+import { User, Edit3, Save, X, Mail, Phone, MapPin, Calendar, Shield, Briefcase, Car, Image, AlertCircle, Lock, RefreshCw } from 'lucide-react';
 
 interface ProfileField {
   id: string;
@@ -28,11 +28,13 @@ interface ProfileCardProps {
   description: string;
   fields: ProfileField[];
   onSave: (updatedFields: Record<string, string>) => Promise<void>;
+  onRefresh?: () => Promise<void>;
+  isRefreshing?: boolean;
   additionalInfo?: React.ReactNode;
   isGoogleUser?: boolean; // Flag to indicate if user logged in with Google
 }
 
-export default function ProfileCard({ title, description, fields, onSave, additionalInfo, isGoogleUser = false }: ProfileCardProps) {
+export default function ProfileCard({ title, description, fields, onSave, onRefresh, isRefreshing = false, additionalInfo, isGoogleUser = false }: ProfileCardProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedFields, setEditedFields] = useState<Record<string, string>>({});
@@ -316,6 +318,22 @@ export default function ProfileCard({ title, description, fields, onSave, additi
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  // Helper functions to get current field values (these will reflect refreshed data)
+  const getCurrentFieldValue = (fieldId: string) => {
+    const field = fields.find(f => f.id === fieldId);
+    return field?.value || '';
+  };
+
+  const getCurrentName = () => {
+    const firstName = getCurrentFieldValue('firstName');
+    const lastName = getCurrentFieldValue('lastName');
+    return firstName && lastName ? `${firstName} ${lastName}` : 'User Profile';
+  };
+
+  const getCurrentEmail = () => {
+    return getCurrentFieldValue('email') || user?.email || '';
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header Section */}
@@ -325,10 +343,23 @@ export default function ProfileCard({ title, description, fields, onSave, additi
           <p className="text-gray-600 mt-1">{description}</p>
         </div>
         {!isEditing ? (
-          <Button onClick={handleEdit} className="flex items-center gap-2">
-            <Edit3 className="w-4 h-4" />
-            Edit Profile
-          </Button>
+          <div className="flex gap-2">
+            {onRefresh && (
+              <Button 
+                onClick={onRefresh} 
+                variant="outline" 
+                className="flex items-center gap-2"
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            )}
+            <Button onClick={handleEdit} className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4" />
+              Edit Profile
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <Button onClick={handleCancel} variant="outline" className="flex items-center gap-2">
@@ -374,7 +405,11 @@ export default function ProfileCard({ title, description, fields, onSave, additi
                   <AvatarImage src={getProfilePicture()!} alt="Profile" />
                 )}
                 <AvatarFallback className="text-lg font-semibold bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-                  {user ? getInitials(user.firstName, user.lastName) : 'U'}
+                  {(() => {
+                    const firstName = getCurrentFieldValue('firstName');
+                    const lastName = getCurrentFieldValue('lastName');
+                    return firstName && lastName ? getInitials(firstName, lastName) : 'U';
+                  })()}
                 </AvatarFallback>
               </Avatar>
               {isEditing && (
@@ -393,7 +428,7 @@ export default function ProfileCard({ title, description, fields, onSave, additi
               className="hidden"
             />
             <div className="flex-1">
-              <CardTitle className="text-2xl">{user ? `${user.firstName} ${user.lastName}` : 'User Profile'}</CardTitle>
+              <CardTitle className="text-2xl">{getCurrentName()}</CardTitle>
               <div className="flex items-center gap-2 mt-2">
                 {isEditing && selectedProfileImage && (
                   <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
@@ -408,7 +443,7 @@ export default function ProfileCard({ title, description, fields, onSave, additi
                 </Badge>
                 <Badge variant="outline" className="text-xs">
                   <Mail className="w-3 h-3 mr-1" />
-                  {user?.email}
+                  {getCurrentEmail()}
                 </Badge>
               </div>
                 <div className="text-xs text-gray-600 mt-2">
@@ -419,7 +454,15 @@ export default function ProfileCard({ title, description, fields, onSave, additi
           </div>
         </CardHeader>
 
-        <CardContent className="p-6">
+        <CardContent className="p-6 relative">
+          {isRefreshing && (
+            <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-lg">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                <span className="text-sm font-medium text-gray-700">Refreshing data...</span>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {fields.filter(field => field.id !== 'profilePicture').map((field) => (
               <div key={field.id} className="space-y-2">
