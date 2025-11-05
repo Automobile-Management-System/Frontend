@@ -14,9 +14,33 @@ interface ProfileClientProps {
 
 export default function ProfileClient({ title, description, initialProfile }: ProfileClientProps) {
   const [profileData, setProfileData] = useState<ProfileData | null>(initialProfile);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isGoogleUser = (): boolean => {
     return profileData?.email?.includes("@gmail.com") || false;
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      toast.info("Refreshing profile data...");
+      
+      // Fetch fresh data from the server
+      const result = await profileApiService.getCurrentUserProfile();
+      
+      if (result.success && result.data) {
+        // Update the local state with fresh data
+        setProfileData(result.data);
+        toast.success("Profile data refreshed successfully!");
+      } else {
+        toast.error(result.error || "Failed to refresh profile data");
+      }
+    } catch (error) {
+      console.error("Error refreshing profile:", error);
+      toast.error("Failed to refresh profile data");
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleSave = async (updatedFields: Record<string, string>) => {
@@ -34,8 +58,23 @@ export default function ProfileClient({ title, description, initialProfile }: Pr
       const result = await profileApiService.updateCurrentUserProfile(updateDto);
 
       if (result.success) {
+        // Update local state with the changes first
         setProfileData((prev) => (prev ? { ...prev, ...updatedFields } : prev));
         toast.success("Profile updated successfully!");
+        
+        // Automatically refresh data from server to ensure consistency
+        setTimeout(async () => {
+          try {
+            const refreshResult = await profileApiService.getCurrentUserProfile();
+            if (refreshResult.success && refreshResult.data) {
+              setProfileData(refreshResult.data);
+              // Removed the sync message - silent background refresh
+            }
+          } catch (error) {
+            console.error("Error refreshing after save:", error);
+            // Don't show error toast as the save was successful
+          }
+        }, 1000); // Small delay to let the save complete
       } else {
         toast.error(result.error || "Failed to update profile");
         throw new Error(result.error || "Failed to update profile");
@@ -116,6 +155,8 @@ export default function ProfileClient({ title, description, initialProfile }: Pr
       description={description}
       fields={profileFields}
       onSave={handleSave}
+      onRefresh={handleRefresh}
+      isRefreshing={isRefreshing}
       isGoogleUser={isGoogleUser()}
     />
   );

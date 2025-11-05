@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bar, Line } from 'react-chartjs-2';
 import {
@@ -15,7 +15,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Users, Calendar, DollarSign, UserCheck, FileDown, RefreshCw, TrendingUp, BarChart3 } from 'lucide-react';
+import { DollarSign, Calendar, TrendingUp, FileDown, RefreshCw } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -28,23 +28,12 @@ ChartJS.register(
   Legend
 );
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
+// Updated interfaces to match backend DTOs
 interface AnalyticsOverviewDto {
-  totalAppointments: number;
-  completedAppointments: number;
   totalRevenue: number;
-  totalCustomers: number;
-  totalEmployees: number;
+  totalAppointments: number;
+  averageRevenuePerMonth: number;
+  growthRate: number;
 }
 
 interface ServiceCompletionDto {
@@ -56,14 +45,14 @@ interface ServiceCompletionDto {
 
 interface EmployeePerformanceDto {
   employeeName: string;
-  appointmentsHandled: number;
+  completedAppointments: number;
+  revenueGenerated: number;
   averageRating: number;
-  totalHoursLogged: number;
 }
 
-interface RevenueStatsDto {
-  totalRevenue: number;
+interface RevenueTrendDto {
   revenueByMonth: { [key: string]: number };
+  appointmentsByMonth: { [key: string]: number };
 }
 
 interface CustomerActivityDto {
@@ -73,16 +62,17 @@ interface CustomerActivityDto {
   averageRating: number;
 }
 
-const API_BASE = 'http://localhost:5001/api'; // Adjust to your backend URL
+const API_BASE = 'http://localhost:5001/api';
 
 const AnalyticsPage: React.FC = () => {
   const [overview, setOverview] = useState<AnalyticsOverviewDto | null>(null);
   const [serviceCompletion, setServiceCompletion] = useState<ServiceCompletionDto[]>([]);
   const [employeePerformance, setEmployeePerformance] = useState<EmployeePerformanceDto[]>([]);
-  const [revenueStats, setRevenueStats] = useState<RevenueStatsDto | null>(null);
+  const [revenueTrend, setRevenueTrend] = useState<RevenueTrendDto | null>(null);
   const [customerActivity, setCustomerActivity] = useState<CustomerActivityDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'revenue' | 'service' | 'employee'>('revenue');
 
   useEffect(() => {
     fetchData();
@@ -91,19 +81,53 @@ const AnalyticsPage: React.FC = () => {
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const [overviewRes, serviceRes, employeeRes, revenueRes, customerRes] = await Promise.all([
+      const [overviewRes, serviceRes, employeeRes, trendRes, customerRes] = await Promise.all([
         fetch(`${API_BASE}/AdminAnalytics/overview`, { credentials: 'include' }),
         fetch(`${API_BASE}/AdminAnalytics/service-completion-rates`, { credentials: 'include' }),
         fetch(`${API_BASE}/AdminAnalytics/employee-performance`, { credentials: 'include' }),
-        fetch(`${API_BASE}/AdminAnalytics/revenue-stats`, { credentials: 'include' }),
+        fetch(`${API_BASE}/AdminAnalytics/revenue-trend`, { credentials: 'include' }),
         fetch(`${API_BASE}/AdminAnalytics/customer-activity`, { credentials: 'include' }),
       ]);
 
-      setOverview(await overviewRes.json());
-      setServiceCompletion(await serviceRes.json());
-      setEmployeePerformance(await employeeRes.json());
-      setRevenueStats(await revenueRes.json());
-      setCustomerActivity(await customerRes.json());
+      if (overviewRes.ok) {
+        const data = await overviewRes.json();
+        console.log('Overview data:', data);
+        setOverview(data);
+      } else {
+        console.error('Overview failed:', overviewRes.status);
+      }
+      
+      if (serviceRes.ok) {
+        const data = await serviceRes.json();
+        console.log('Service completion data:', data);
+        setServiceCompletion(data);
+      } else {
+        console.error('Service completion failed:', serviceRes.status);
+      }
+      
+      if (employeeRes.ok) {
+        const data = await employeeRes.json();
+        console.log('Employee performance data:', data);
+        setEmployeePerformance(data);
+      } else {
+        console.error('Employee performance failed:', employeeRes.status);
+      }
+      
+      if (trendRes.ok) {
+        const data = await trendRes.json();
+        console.log('Revenue trend data:', data);
+        setRevenueTrend(data);
+      } else {
+        console.error('Revenue trend failed:', trendRes.status);
+      }
+      
+      if (customerRes.ok) {
+        const data = await customerRes.json();
+        console.log('Customer activity data:', data);
+        setCustomerActivity(data);
+      } else {
+        console.error('Customer activity failed:', customerRes.status);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -115,6 +139,14 @@ const AnalyticsPage: React.FC = () => {
   const downloadReport = async () => {
     try {
       const response = await fetch(`${API_BASE}/AdminAnalytics/generate-report`, { credentials: 'include' });
+      
+      if (response.status === 403) {
+        alert('Access Denied: You do not have permission to download this report.');
+        return;
+      }
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -126,75 +158,140 @@ const AnalyticsPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading report:', error);
+      alert('Failed to download report. Please try again.');
     }
   };
 
-  if (loading) return (
-    <div className="p-6 space-y-6">
-      <div className="animate-pulse">
-        <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-24 bg-muted rounded-lg"></div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-64 bg-muted rounded-lg"></div>
-          <div className="h-64 bg-muted rounded-lg"></div>
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded-lg"></div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  const barData = {
-    labels: serviceCompletion.map(s => s.serviceName),
-    datasets: [
-      {
-        label: 'Completion Rate (%)',
-        data: serviceCompletion.map(s => s.completionRate),
-        backgroundColor: [
-          '#1e3a8a', // blue-900
-          '#1e40af', // blue-800
-          '#2563eb', // blue-600
-          '#3b82f6', // blue-500
-          '#60a5fa', // blue-400
-        ],
-        borderRadius: 8,
-        borderSkipped: false,
-      },
-    ],
+  // Format month labels (e.g., "2025-01" -> "Jan")
+  const formatMonth = (monthStr: string) => {
+    const [year, month] = monthStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { month: 'short' });
   };
 
-  const lineData = revenueStats ? {
-    labels: Object.keys(revenueStats.revenueByMonth),
+  // Revenue Trend Chart Data
+  const revenueTrendChartData = revenueTrend && 
+    revenueTrend.revenueByMonth && 
+    Object.keys(revenueTrend.revenueByMonth).length > 0 ? {
+    labels: Object.keys(revenueTrend.revenueByMonth).map(formatMonth),
     datasets: [
       {
         label: 'Revenue ($)',
-        data: Object.values(revenueStats.revenueByMonth),
-        borderColor: '#1e3a8a',
-        backgroundColor: 'rgba(30, 58, 138, 0.1)',
+        data: Object.values(revenueTrend.revenueByMonth),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.4,
         fill: true,
-        pointBackgroundColor: '#1e3a8a',
+        pointBackgroundColor: '#3b82f6',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
-        pointRadius: 6,
-        pointHoverRadius: 8,
+        pointRadius: 4,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Appointments',
+        data: Object.values(revenueTrend.appointmentsByMonth || {}),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#10b981',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        yAxisID: 'y1',
       },
     ],
   } : null;
 
-  const chartOptions = {
+  const revenueTrendOptions = {
     responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
     plugins: {
       legend: {
-        position: 'top' as const,
+        display: false,
       },
       tooltip: {
-        backgroundColor: 'hsl(var(--popover))',
-        titleColor: 'hsl(var(--popover-foreground))',
-        bodyColor: 'hsl(var(--popover-foreground))',
-        borderColor: 'hsl(var(--border))',
+        backgroundColor: '#fff',
+        titleColor: '#000',
+        bodyColor: '#000',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      y: {
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
+        beginAtZero: true,
+        grid: {
+          color: '#e5e7eb',
+        },
+      },
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        beginAtZero: true,
+        grid: {
+          drawOnChartArea: false,
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+      },
+    },
+  };
+
+  // Monthly Comparison Chart Data
+  const monthlyComparisonData = revenueTrend && 
+    revenueTrend.revenueByMonth && 
+    Object.keys(revenueTrend.revenueByMonth).length > 0 ? {
+    labels: Object.keys(revenueTrend.revenueByMonth).map(formatMonth),
+    datasets: [
+      {
+        label: 'Revenue ($)',
+        data: Object.values(revenueTrend.revenueByMonth),
+        backgroundColor: '#3b82f6',
+        borderRadius: 6,
+      },
+    ],
+  } : null;
+
+  const monthlyComparisonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#fff',
+        titleColor: '#000',
+        bodyColor: '#000',
+        borderColor: '#e5e7eb',
         borderWidth: 1,
       },
     },
@@ -202,213 +299,269 @@ const AnalyticsPage: React.FC = () => {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'hsl(var(--border))',
+          color: '#e5e7eb',
         },
       },
       x: {
         grid: {
-          color: 'hsl(var(--border))',
+          display: false,
         },
       },
     },
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-4xl font-bold text-blue-900">
-            Analytics Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-2">Comprehensive insights into your automobile management system</p>
+          <h1 className="text-3xl font-semibold text-gray-900">Analytics & Reports</h1>
+          <p className="text-gray-600 mt-1">Track performance and generate insights</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <Button
             onClick={() => fetchData(true)}
             disabled={refreshing}
             variant="outline"
-            className="hover:bg-blue-900/10 transition-colors border-blue-900 text-blue-900 hover:text-blue-900"
+            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button
             onClick={downloadReport}
-            className="bg-blue-900 hover:bg-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm"
           >
             <FileDown className="w-4 h-4 mr-2" />
-            Download PDF Report
+            Export Report
           </Button>
         </div>
       </div>
 
       {/* Overview Cards */}
       {overview && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <Card className="group hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Appointments</CardTitle>
-              <Calendar className="h-5 w-5 text-blue-900 group-hover:scale-110 transition-transform" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{overview.totalAppointments.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">All time bookings</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Revenue</p>
+                  <p className="text-3xl font-semibold mt-2">${(overview.totalRevenue / 1000).toFixed(1)}k</p>
+                  <p className="text-xs text-gray-500 mt-1">Year to date</p>
+                </div>
+                <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="group hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completed Appointments</CardTitle>
-              <UserCheck className="h-5 w-5 text-blue-900 group-hover:scale-110 transition-transform" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{overview.completedAppointments.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">Successfully finished</p>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Appointments</p>
+                  <p className="text-3xl font-semibold mt-2">{overview.totalAppointments}</p>
+                  <p className="text-xs text-gray-500 mt-1">Total bookings</p>
+                </div>
+                <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="group hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
-              <DollarSign className="h-5 w-5 text-blue-900 group-hover:scale-110 transition-transform" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">${overview.totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">Revenue generated</p>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Avg Revenue</p>
+                  <p className="text-3xl font-semibold mt-2">${(overview.averageRevenuePerMonth / 1000).toFixed(1)}k</p>
+                  <p className="text-xs text-gray-500 mt-1">Per month</p>
+                </div>
+                <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="group hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Customers</CardTitle>
-              <Users className="h-5 w-5 text-blue-900 group-hover:scale-110 transition-transform" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{overview.totalCustomers.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">Registered users</p>
-            </CardContent>
-          </Card>
-          <Card className="group hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Employees</CardTitle>
-              <UserCheck className="h-5 w-5 text-blue-900 group-hover:scale-110 transition-transform" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{overview.totalEmployees.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">Active staff</p>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Growth Rate</p>
+                  <p className={`text-3xl font-semibold mt-2 ${overview.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {overview.growthRate >= 0 ? '+' : ''}{overview.growthRate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Month over month</p>
+                </div>
+                <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className={`h-5 w-5 ${overview.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <BarChart3 className="h-6 w-6 text-blue-900" />
-              Service Completion Rates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Bar data={barData} options={chartOptions} />
-          </CardContent>
-        </Card>
-        {lineData && (
-          <Card className="hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <TrendingUp className="h-6 w-6 text-blue-900" />
-                Revenue Over Time
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Line data={lineData} options={chartOptions} />
-            </CardContent>
-          </Card>
-        )}
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('revenue')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'revenue'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Revenue & Appointments
+        </button>
+        <button
+          onClick={() => setActiveTab('service')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'service'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Service Distribution
+        </button>
+        <button
+          onClick={() => setActiveTab('employee')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'employee'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Employee Performance
+        </button>
       </div>
 
-      {/* Employee Performance Table */}
-      <Card className="hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl">Employee Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-4 font-semibold text-foreground">Employee</th>
-                  <th className="text-left p-4 font-semibold text-foreground">Appointments Handled</th>
-                  <th className="text-left p-4 font-semibold text-foreground">Average Rating</th>
-                  <th className="text-left p-4 font-semibold text-foreground">Hours Logged</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employeePerformance.map((emp, index) => (
-                  <tr key={index} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                    <td className="p-4 text-foreground font-medium">{emp.employeeName}</td>
-                    <td className="p-4 text-foreground">{emp.appointmentsHandled}</td>
-                    <td className="p-4 text-foreground">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/10 text-blue-900">
-                        {emp.averageRating.toFixed(1)} ⭐
-                      </span>
-                    </td>
-                    <td className="p-4 text-foreground">{emp.totalHoursLogged.toFixed(1)}h</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Customer Activity */}
-      {customerActivity && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-card to-card/80 border-0 shadow-lg">
+      {/* Tab Content */}
+      {activeTab === 'revenue' && (
+        <div className="space-y-6">
+          <Card className="bg-white border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Users className="h-6 w-6 text-blue-900" />
-                Customer Activity
-              </CardTitle>
+              <CardTitle className="text-lg font-semibold">Revenue Trend</CardTitle>
+              <CardDescription className="text-sm text-gray-500">Monthly revenue and appointment volume</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-muted-foreground">Total Customers</span>
-                <span className="text-2xl font-bold text-foreground">{customerActivity.totalCustomers.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-muted-foreground">Active Customers</span>
-                <span className="text-2xl font-bold text-foreground">{customerActivity.activeCustomers.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-muted-foreground">Avg Appointments/Customer</span>
-                <span className="text-2xl font-bold text-foreground">{customerActivity.averageAppointmentsPerCustomer.toFixed(1)}</span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-muted-foreground">Average Rating</span>
-                <span className="text-2xl font-bold text-foreground flex items-center gap-1">
-                  {customerActivity.averageRating.toFixed(1)} <span className="text-blue-900">⭐</span>
-                </span>
-              </div>
+            <CardContent className="h-[300px]">
+              {revenueTrendChartData ? (
+                <Line data={revenueTrendChartData} options={revenueTrendOptions} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <p className="text-sm">No revenue data available</p>
+                    <p className="text-xs mt-1">Data will appear once transactions are recorded</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-          <Card className="hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-blue-900/5 to-blue-800/5 border-0 shadow-lg">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileDown className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Generate Detailed Report</h3>
-              <p className="text-muted-foreground mb-4">Download a comprehensive PDF report with all analytics data</p>
-              <Button
-                onClick={downloadReport}
-                className="bg-blue-900 hover:bg-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <FileDown className="w-4 h-4 mr-2" />
-                Download PDF
-              </Button>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Monthly Comparison</CardTitle>
+              <CardDescription className="text-sm text-gray-500">Revenue by month</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              {monthlyComparisonData ? (
+                <Bar data={monthlyComparisonData} options={monthlyComparisonOptions} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <p className="text-sm">No monthly data available</p>
+                    <p className="text-xs mt-1">Data will appear once transactions are recorded</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {activeTab === 'service' && (
+        <Card className="bg-white border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Service Distribution</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Service completion rates</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {serviceCompletion.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Service</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Total</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Completed</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Completion Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serviceCompletion.map((service, index) => (
+                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-4 text-sm text-gray-900">{service.serviceName}</td>
+                        <td className="p-4 text-sm text-gray-600">{service.totalAppointments}</td>
+                        <td className="p-4 text-sm text-gray-600">{service.completedAppointments}</td>
+                        <td className="p-4 text-sm text-gray-900 font-medium">{service.completionRate.toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-48 text-gray-500">
+                <div className="text-center">
+                  <p className="text-sm">No service data available</p>
+                  <p className="text-xs mt-1">Data will appear once services are created and appointments are made</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'employee' && (
+        <Card className="bg-white border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Employee Performance</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Completed appointments and revenue generated</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {employeePerformance.length > 0 ? (
+              <div className="space-y-6">
+                {employeePerformance.map((emp, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{emp.employeeName}</p>
+                        <p className="text-xs text-gray-500">
+                          {emp.completedAppointments} appointments • ${emp.revenueGenerated.toLocaleString()} revenue • ⭐ {emp.averageRating.toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{ width: `${Math.min((emp.completedAppointments / Math.max(...employeePerformance.map(e => e.completedAppointments))) * 100, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-48 text-gray-500">
+                <div className="text-center">
+                  <p className="text-sm">No employee performance data available</p>
+                  <p className="text-xs mt-1">Data will appear once employees complete appointments</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

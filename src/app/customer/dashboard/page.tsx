@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Calendar,
   DollarSign, 
@@ -17,7 +17,7 @@ import {
   CheckCircle,
   Car,
 } from "lucide-react";
-import { Badge } from "../../../components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { VehicleDialog } from "../../../../components/customer/VehicleDialog";
 import { toast } from "sonner"; 
@@ -88,8 +88,23 @@ export default function CustomerDashboard() {
         pendingPayments: pendingPaymentsData?.pendingPaymentsTotal || 0,
       });
 
-      setUpcomingAppointments(latestServicesData);
-      setRecentModifications(latestModsData);
+      // Transform the data to group services and modifications by appointment
+      const transformedServices = latestServicesData.map((item: any) => ({
+        id: item.date,
+        services: item.services,
+        date: new Date(item.date).toLocaleDateString(),
+        status: "completed",
+      }));
+
+      const transformedMods = latestModsData.map((item: any) => ({
+        id: item.date,
+        modifications: item.modifications,
+        date: new Date(item.date).toLocaleDateString(),
+        status: "completed",
+      }));
+
+      setUpcomingAppointments(transformedServices);
+      setRecentModifications(transformedMods);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       setError("An unexpected error occurred while fetching dashboard data.");
@@ -270,9 +285,13 @@ export default function CustomerDashboard() {
                     <Calendar className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm">{appointment.service}</p>
+                    <div className="text-sm">
+                      {appointment.services.map((service: string, idx: number) => (
+                        <div key={idx}>{service}</div>
+                      ))}
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {appointment.date} at {appointment.time}
+                      {appointment.date}
                     </p>
                   </div>
                 </div>
@@ -288,7 +307,7 @@ export default function CustomerDashboard() {
                 >
                   {appointment.status === "in-progress"
                     ? "In Progress"
-                    : "Confirmed"}
+                    : "Completed"}
                 </Badge>
               </div>
             ))}
@@ -331,9 +350,13 @@ export default function CustomerDashboard() {
                     <Wrench className="h-5 w-5 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-sm">{mod.service}</p>
+                    <div className="text-sm">
+                      {mod.modifications.map((modification: string, idx: number) => (
+                        <div key={idx}>{modification}</div>
+                      ))}
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {mod.date} at {mod.time}
+                      {mod.date}
                     </p>
                   </div>
                 </div>
