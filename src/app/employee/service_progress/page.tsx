@@ -19,7 +19,10 @@ const ServiceProgressPage: React.FC = () => {
   // Debug logging - only on initial mount
   useEffect(() => {
     console.log("ServiceProgressPage - User:", user);
-    console.log("ServiceProgressPage - User employeeId property:", user?.employeeId);
+    console.log(
+      "ServiceProgressPage - User employeeId property:",
+      user?.employeeId
+    );
     console.log("ServiceProgressPage - User id property:", user?.id);
     console.log("ServiceProgressPage - Final Employee ID:", employeeId);
   }, [user, employeeId]); // Only log when user or employeeId changes
@@ -82,7 +85,7 @@ const ServiceProgressPage: React.FC = () => {
 
   const handleStatusUpdate = async (
     appointmentId: number,
-    newStatus: AppointmentStatus,
+    newStatus: AppointmentStatus | number,
     notes?: string
   ) => {
     try {
@@ -115,8 +118,8 @@ const ServiceProgressPage: React.FC = () => {
         }
       }
 
-      // Then update status to completed (this will update local state and keep service visible)
-      await updateStatus(appointmentId, "Completed", "Service completed");
+      // Then update status to 2 (completed)
+      await updateStatus(appointmentId, 2, "Service completed");
     } catch (error) {
       console.error("Failed to stop and complete:", error);
       // Show user-friendly error message
@@ -426,7 +429,7 @@ const ServiceProgressPage: React.FC = () => {
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-sm font-medium text-gray-600">Upcoming</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {stats.pending}
                 </p>
