@@ -7,6 +7,8 @@ export interface Vehicle {
 export type RequestStatus = 'Pending' | 'Upcoming' | 'In Progress' | 'Completed' | 'Rejected';
 
 export interface ModificationRequest {
+  displayAmount: any;
+  vehicleRegistrationNumber: string;
   modificationId: number;
   title: string;
   description: string;

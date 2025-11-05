@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { Vehicle } from '@/types';
 import { api } from '@/services/api';
 
@@ -14,12 +16,12 @@ export default function AddRequestModal({ isOpen, onClose, onSuccess }: Props) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [vehicleId, setVehicleId] = useState<number | ''>('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
 
-  // Fetch vehicles for logged-in user
   useEffect(() => {
     if (!isOpen) return;
 
@@ -44,26 +46,35 @@ export default function AddRequestModal({ isOpen, onClose, onSuccess }: Props) {
     fetchVehicles();
   }, [isOpen]);
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description || vehicleId === '') return;
+
+    if (!title || !description || vehicleId === '' || !selectedDate) {
+      alert('Please fill all fields including date.');
+      return;
+    }
 
     setLoading(true);
+
     try {
-      await api.createRequest({ title, description, vehicleId });
-      onSuccess();
-      onClose();
+      await api.createRequest({
+        title,
+        description,
+        vehicleId: Number(vehicleId),
+        requestDate: selectedDate.toISOString(), // ✅ send the selected date
+      });
+
+      // Reset form
       setTitle('');
       setDescription('');
       setVehicleId('');
-    } catch (err: any) {
-      console.error('Failed to create request:', err);
-      if (err.response?.status === 401) {
-        alert('You are not logged in. Please log in to create a request.');
-      } else {
-        alert('Failed to create request.');
-      }
+      setSelectedDate(null);
+
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to create request.');
     } finally {
       setLoading(false);
     }
@@ -72,11 +83,13 @@ export default function AddRequestModal({ isOpen, onClose, onSuccess }: Props) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative transform transition-all scale-100">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="absolute inset-0 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative bg-white shadow-2xl rounded-2xl max-w-lg w-full p-8 animate-fade-in-up">
         <h2 className="text-3xl font-semibold mb-6 text-gray-900 text-center">
           New Modification Request
         </h2>
+
         {unauthorized ? (
           <p className="text-red-500 text-center mb-4">
             You are not logged in. Please log in to see your vehicles.
@@ -94,9 +107,7 @@ export default function AddRequestModal({ isOpen, onClose, onSuccess }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
-                Description
-              </label>
+              <label className="block text-sm font-medium text-gray-600 mb-2">Description</label>
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
@@ -125,6 +136,18 @@ export default function AddRequestModal({ isOpen, onClose, onSuccess }: Props) {
                   ))}
                 </select>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">Select Date</label>
+              <DatePicker
+                selected={selectedDate}
+                onChange={date => setSelectedDate(date)}
+                dateFormat="yyyy-MM-dd"
+                placeholderText="Select a request date"
+                className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                minDate={new Date()}
+              />
             </div>
 
             <div className="flex gap-4 pt-4">

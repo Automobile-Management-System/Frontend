@@ -74,7 +74,7 @@ export default function ModificationsPage() {
         <h1 className="text-2xl font-bold">My Modification Requests</h1>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
+          className="bg-blue-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-900 transition"
         >
           + New Request
         </button>
@@ -88,7 +88,7 @@ export default function ModificationsPage() {
             onClick={() => setActiveStatus(tab.value)}
             className={`px-4 py-2 rounded-full font-medium transition ${
               activeStatus === tab.value
-                ? 'bg-blue-600 text-white shadow-lg'
+                ? 'bg-blue-900 text-white shadow-lg'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
