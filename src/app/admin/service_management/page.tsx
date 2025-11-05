@@ -315,8 +315,17 @@ export default function ServiceManagementPage() {
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <Alert className={toast.type === 'success' ? 'bg-[#33CC7A] text-white border-[#33CC7A]' : 'bg-[#E63946] text-white border-[#E63946]'}>
-            <AlertDescription className="font-semibold text-white text-base">
+          <Alert className={toast.type === 'success' ? 'bg-[#D1FAE5] border-[#10B981]' : 'bg-[#FEE2E2] border-[#E63946]'}>
+            <AlertDescription className={`flex items-center gap-2 font-semibold text-base ${toast.type === 'success' ? 'text-[#047857]' : 'text-[#E63946]'}`}>
+              {toast.type === 'success' ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              )}
               {toast.message}
             </AlertDescription>
           </Alert>
@@ -406,62 +415,36 @@ export default function ServiceManagementPage() {
       )}
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-[#0B2E66]">Service Catalog</h1>
-          <p className="text-[#1F2A3C] mt-2">
-            Manage available services and pricing
-          </p>
+        {/* Header with Add Button */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#0B2E66]">Service Catalog</h1>
+            <p className="text-[#1F2A3C] mt-2">
+              Manage available services and pricing
+            </p>
+          </div>
+          
+          {/* Add Button */}
+          <button
+            onClick={() => handleOpenDialog()}
+            className="flex items-center justify-center gap-2 bg-[#0B2E66] hover:bg-[#1E63CC] text-white px-6 py-2.5 rounded-lg transition-colors whitespace-nowrap"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Add Service
+          </button>
         </div>
-
-      {/* Search Bar and Add Button */}
-<div className="flex flex-col sm:flex-row justify-center items-center gap-4 w-full mt-6">
-  {/* Search Bar */}
-  <div className="relative w-full max-w-2xl">
-    <svg
-      className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#B8BDC5]"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-      />
-    </svg>
-    <input
-      type="text"
-      placeholder="Search services..."
-      value={searchQuery}
-      onChange={handleSearchChange}
-      className="w-full pl-12 pr-4 py-2.5 border border-[#D5D9DE] rounded-lg focus:ring-2 focus:ring-[#1E63CC] focus:border-transparent text-[#1F2A3C]"
-    />
-  </div>
-
-  {/* Add Button */}
-  <button
-    onClick={() => handleOpenDialog()}
-    className="flex items-center justify-center gap-2 bg-[#0B2E66] hover:bg-[#1E63CC] text-white px-6 py-2.5 rounded-lg transition-colors whitespace-nowrap"
-  >
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 4v16m8-8H4"
-      />
-    </svg>
-    Add Service
-  </button>
-</div>
-
 
         {/* Stats Cards */}
         <div className="grid sm:grid-cols-2 gap-4">
@@ -475,6 +458,30 @@ export default function ServiceManagementPage() {
               {stats.averagePrice.toFixed(2)} <span className="text-lg text-[#B8BDC5]">LKR</span>
             </div>
           </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative w-full sm:max-w-md">
+          <svg
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#B8BDC5]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search services..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full pl-12 pr-4 py-2.5 border border-[#D5D9DE] rounded-lg focus:ring-2 focus:ring-[#1E63CC] focus:border-transparent text-[#1F2A3C]"
+          />
         </div>
 
         {/* Services Table */}
