@@ -286,30 +286,32 @@ export default function DashboardPage() {
             {safeRecentUsers.length === 0 ? (
               <p className="text-gray-500 text-sm">No recent users</p>
             ) : (
-              safeRecentUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <UserCheck className="h-5 w-5 text-blue-600" />
+              <>
+                {safeRecentUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <UserCheck className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{user.name}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
+                    <div className="text-right">
+                      <Badge variant="outline" className="capitalize">
+                        {user.role.toLowerCase()}
+                      </Badge>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatTimeAgo(user.registeredAt)}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <Badge variant="outline" className="capitalize">
-                      {user.role.toLowerCase()}
-                    </Badge>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatTimeAgo(user.registeredAt)}
-                    </p>
-                  </div>
-                </div>
-              ))
+                ))}
+              </>
             )}
           </CardContent>
         </Card>
