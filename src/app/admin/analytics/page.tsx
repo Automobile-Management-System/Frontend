@@ -191,7 +191,7 @@ const AnalyticsPage: React.FC = () => {
     labels: Object.keys(revenueTrend.revenueByMonth).map(formatMonth),
     datasets: [
       {
-        label: 'Revenue ($)',
+        label: 'Revenue (Rs)',
         data: Object.values(revenueTrend.revenueByMonth),
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -272,7 +272,7 @@ const AnalyticsPage: React.FC = () => {
     labels: Object.keys(revenueTrend.revenueByMonth).map(formatMonth),
     datasets: [
       {
-        label: 'Revenue ($)',
+        label: 'Revenue (Rs)',
         data: Object.values(revenueTrend.revenueByMonth),
         backgroundColor: '#3b82f6',
         borderRadius: 6,
@@ -315,7 +315,7 @@ const AnalyticsPage: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Analytics & Reports</h1>
+          <h1 className="text-3xl font-semibold text-[#0B2E66]">Analytics & Reports</h1>
           <p className="text-gray-600 mt-1">Track performance and generate insights</p>
         </div>
         <div className="flex gap-2">
@@ -323,14 +323,14 @@ const AnalyticsPage: React.FC = () => {
             onClick={() => fetchData(true)}
             disabled={refreshing}
             variant="outline"
-            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm"
+            className="bg-[#0B2E66] hover:bg-[#0a2757] text-white border-0 shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button
             onClick={downloadReport}
-            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm"
+            className="bg-[#0B2E66] hover:bg-[#0a2757] text-white border-0 shadow-sm"
           >
             <FileDown className="w-4 h-4 mr-2" />
             Export Report
@@ -346,7 +346,7 @@ const AnalyticsPage: React.FC = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-3xl font-semibold mt-2">${(overview.totalRevenue / 1000).toFixed(1)}k</p>
+                  <p className="text-3xl font-semibold mt-2">Rs {overview.totalRevenue.toLocaleString()}</p>
                   <p className="text-xs text-gray-500 mt-1">Year to date</p>
                 </div>
                 <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -376,7 +376,7 @@ const AnalyticsPage: React.FC = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-600">Avg Revenue</p>
-                  <p className="text-3xl font-semibold mt-2">${(overview.averageRevenuePerMonth / 1000).toFixed(1)}k</p>
+                  <p className="text-3xl font-semibold mt-2">Rs {overview.averageRevenuePerMonth.toLocaleString()}</p>
                   <p className="text-xs text-gray-500 mt-1">Per month</p>
                 </div>
                 <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -486,31 +486,32 @@ const AnalyticsPage: React.FC = () => {
         <Card className="bg-white border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Service Distribution</CardTitle>
-            <CardDescription className="text-sm text-gray-500">Service completion rates</CardDescription>
+            <CardDescription className="text-sm text-gray-500">Total and completed appointments by service</CardDescription>
           </CardHeader>
           <CardContent>
             {serviceCompletion.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left p-4 text-sm font-medium text-gray-700">Service</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-700">Total</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-700">Completed</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-700">Completion Rate</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {serviceCompletion.map((service, index) => (
-                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="p-4 text-sm text-gray-900">{service.serviceName}</td>
-                        <td className="p-4 text-sm text-gray-600">{service.totalAppointments}</td>
-                        <td className="p-4 text-sm text-gray-600">{service.completedAppointments}</td>
-                        <td className="p-4 text-sm text-gray-900 font-medium">{service.completionRate.toFixed(1)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-3">
+                {serviceCompletion.map((service, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{service.serviceName}</h3>
+                    </div>
+                    
+                    <div className="flex items-center gap-8">
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 mb-1">Total</p>
+                        <p className="text-xl font-bold text-gray-900">{service.totalAppointments}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 mb-1">Completed</p>
+                        <p className="text-xl font-bold text-green-600">{service.completedAppointments}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="flex items-center justify-center h-48 text-gray-500">
@@ -539,7 +540,7 @@ const AnalyticsPage: React.FC = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-900">{emp.employeeName}</p>
                         <p className="text-xs text-gray-500">
-                          {emp.completedAppointments} appointments • ${emp.revenueGenerated.toLocaleString()} revenue • ⭐ {emp.averageRating.toFixed(1)}
+                          {emp.completedAppointments} appointments • Rs {emp.revenueGenerated.toLocaleString()} revenue • ⭐ {emp.averageRating.toFixed(1)}
                         </p>
                       </div>
                     </div>
