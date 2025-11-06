@@ -423,14 +423,14 @@ export default function EmployeeDashboard() {
             <span className="text-sm font-medium text-gray-700">View Service Progress</span>
           </button> 
           <button 
-            onClick={() => window.location.href = '/employee/time_log'}
+            onClick={() => window.location.href = '/employee/time-logs'}
             className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
           >
             <Calendar className="w-5 h-5 text-green-600 mr-2" />
             <span className="text-sm font-medium text-gray-700">View Time Log</span>
           </button>
           <button 
-            onClick={() => window.location.href = '/customer/modifications'}
+            onClick={() => window.location.href = '/employee/profile'}
             className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
           >
             <User className="w-5 h-5 text-orange-600 mr-2" />
