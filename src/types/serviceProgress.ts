@@ -3,7 +3,6 @@ export type AppointmentStatus = 'Upcoming' | 'InProgress' | 'Completed' | 'Pendi
 export type ServiceType = 'Service' | 'Modifications';
 
 // Enum mappings for API communication (Sending data TO API)
-// This now matches your C# Enums.cs file
 export const AppointmentStatusEnum = {
   'Pending': 0,
   'Upcoming': 1,
@@ -11,9 +10,6 @@ export const AppointmentStatusEnum = {
   'Completed': 3,
   'Rejected': 4
 } as const;
-
-// NOTE: AppointmentStatusFromEnum and ServiceTypeFromEnum have been removed
-// as the API now sends strings directly.
 
 export interface TimeLogDto {
   logId: number;
@@ -25,16 +21,21 @@ export interface TimeLogDto {
 
 export interface ServiceProgressDto {
   appointmentId: number;
-  serviceTitle: string;
   customerName: string;
   customerId: number; 
-  status: AppointmentStatus; // Type is now the string union
-  serviceType: ServiceType; // Type is now the string union
+  customerVehicleName: string; // Added
+  status: AppointmentStatus; 
+  serviceType: ServiceType; 
   appointmentDateTime: string;
   isTimerActive: boolean;
   currentTimerStartTime?: string;
   totalTimeLogged: number;
   timeLogs: TimeLogDto[];
+  
+  // Replaced serviceTitle
+  serviceNames: string[];
+  modificationTitle?: string;
+  modificationDescription?: string;
 }
 
 export interface TimerActionDto {
@@ -44,7 +45,7 @@ export interface TimerActionDto {
 
 export interface UpdateStatusDto {
   appointmentId: number;
-  newStatus: AppointmentStatus; // This is a string
+  newStatus: AppointmentStatus; 
   userId: number;
   notes?: string;
 }
