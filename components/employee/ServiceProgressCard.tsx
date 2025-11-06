@@ -32,31 +32,24 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
     }
 
     const interval = setInterval(() => {
-      // *** FIX: Conditionally add 'Z' ***
-      // The startTimer API response includes a 'Z', but other times it might not.
-      // This check ensures we only add 'Z' if it's missing.
       const timeString = appointment.currentTimerStartTime!;
       const startTimeString = timeString.endsWith('Z') ? timeString : timeString + 'Z';
       
       const start = new Date(startTimeString);
-      // *** END FIX ***
 
       const now = new Date();
       const diff = now.getTime() - start.getTime();
 
-      // Handle clock sync issues or invalid date
       if (diff < 0 || isNaN(diff)) {
         setElapsedTime("00:00:00");
         return;
       }
 
-      // Calculate hours, minutes, and seconds
       const totalSeconds = Math.floor(diff / 1000);
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
 
-      // Format as HH:MM:SS
       const formattedTime = [
         String(hours).padStart(2, '0'),
         String(minutes).padStart(2, '0'),
@@ -87,6 +80,26 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
       ? "bg-gradient-to-r from-violet-100 to-purple-100 text-violet-800 border-violet-300"
       : "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-300";
   };
+
+  // *** NEW FUNCTION ***
+  // Converts decimal hours (e.g., 1.51) into 00H 00M 00S format
+  const formatTotalTime = (totalHours: number) => {
+    if (totalHours === 0 || isNaN(totalHours)) {
+      return "00H 00M 00S";
+    }
+    
+    const totalSeconds = Math.floor(totalHours * 3600);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return [
+      String(hours).padStart(2, '0') + 'h',
+      String(minutes).padStart(2, '0') + 'm',
+      String(seconds).padStart(2, '0') + 's'
+    ].join(' ');
+  };
+  // *** END NEW FUNCTION ***
 
   return (
     <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-8 hover:shadow-3xl transition-all duration-300 hover:bg-white/90">
@@ -180,11 +193,11 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
               <p className="text-sm font-medium text-gray-600 mb-1">
                 Time Tracking
               </p>
-              {/* This will now show HH:MM:SS when active */}
+              {/* *** MODIFICATION: Use new formatTotalTime function *** */}
               <span className="text-xl font-bold text-gray-900">
                 {appointment.isTimerActive
                   ? elapsedTime
-                  : `${appointment.totalTimeLogged.toFixed(1)}h logged`}
+                  : `${formatTotalTime(appointment.totalTimeLogged)} logged`}
               </span>
             </div>
           </div>
