@@ -47,7 +47,6 @@ export function Navbar() {
   // Logged-in navigation items (for mobile menu)
   // This matches your requested order
   const loggedInMobileNavItems = [
-    { name: "Home", href: "/" },
     { name: "Dashboard", href: isLoggedIn ? getDashboardByRole(user.role) : "/" },
     { name: "Services", href: "/customer/services" },
     { name: "Modifications", href: "/customer/modifications" },
@@ -119,10 +118,7 @@ export function Navbar() {
         <div className="hidden lg:flex items-center justify-center gap-1 flex-1">
           {isLoggedIn ? (
             <>
-              {/* Order: Home, Dashboard, Appointments, Modifications, About */}
-              <Link href="/" className={getLinkClassName("/", true)}>
-                <span>Home</span>
-              </Link>
+              {/* Order: Dashboard, Appointments, Modifications, About */}
               <Link href={getDashboardByRole(user.role)} className={getLinkClassName(getDashboardByRole(user.role), true)}>
                 <span>Dashboard</span>
               </Link>
