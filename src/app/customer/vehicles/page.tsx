@@ -144,7 +144,7 @@ export default function VehicleManagementPage() {
         </div>
         <Button
           onClick={() => handleOpenDialog()}
-          className="ml-4 bg-orange-400 text-white hover:bg-orange-300"
+          className="ml-4 bg-[#0B2E66] text-white hover:bg-[#1E63CC]"
           size="sm"
         >
         + Add Vehicle
