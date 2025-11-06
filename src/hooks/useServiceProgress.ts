@@ -16,7 +16,7 @@ export const useServiceProgress = (employeeId: number) => {
     const fetchServiceProgress = useCallback(async () => {
         try {
             setError(null);
-            setLoading(true); // Set loading true on initial fetch
+            setLoading(true); 
             
             const appointments = await serviceProgressAPI.getEmployeeServiceProgress(employeeId);
             
@@ -32,7 +32,6 @@ export const useServiceProgress = (employeeId: number) => {
         fetchServiceProgress();
     }, [fetchServiceProgress]);
 
-    // Smart refresh that fetches all data without showing a loading spinner
     const refreshPendingServices = useCallback(async () => {
         try {
             const data = await serviceProgressAPI.getEmployeeServiceProgress(employeeId);
@@ -44,13 +43,36 @@ export const useServiceProgress = (employeeId: number) => {
 
     const startTimer = useCallback(async (appointmentId: number, userId: number): Promise<TimerResponseDto> => {
         try {
+            // *** MODIFICATION START ***
+            // Get the result from the API
             const result = await serviceProgressAPI.startTimer(appointmentId, userId);
-            refreshPendingServices(); 
+            
+            if (result.success && result.activeTimeLog) {
+                // Update state immediately instead of waiting for refresh
+                // This provides the new currentTimerStartTime instantly
+                setServiceProgress(prevServices =>
+                    prevServices.map(service =>
+                        service.appointmentId === appointmentId
+                            ? {
+                                ...service,
+                                isTimerActive: true,
+                                currentTimerStartTime: result.activeTimeLog?.startDateTime, // Use the new time from the API
+                                status: "InProgress" // Also update status locally
+                              }
+                            : service
+                    )
+                );
+            } else {
+                // If it failed or didn't return a log, refresh as a fallback
+                refreshPendingServices();
+            }
             return result;
+            // *** MODIFICATION END ***
         } catch (error) {
+            refreshPendingServices(); // Refresh on error
             throw error;
         }
-    }, [refreshPendingServices]);
+    }, [refreshPendingServices]); // Keep dependency
 
     const pauseTimer = useCallback(async (appointmentId: number, userId: number): Promise<TimerResponseDto> => {
         try {
@@ -96,7 +118,6 @@ export const useServiceProgress = (employeeId: number) => {
         try {
             await serviceProgressAPI.updateStatus(appointmentId, newStatus, employeeId, notes);
             
-            // Helper to convert number back to string for local state
             const statusFromNumber: { [key: number]: string } = {
                 0: 'Pending',
                 1: 'Upcoming',
@@ -105,7 +126,6 @@ export const useServiceProgress = (employeeId: number) => {
                 4: 'Rejected'
             };
 
-            // Convert number to string if needed, otherwise use the provided string
             const statusString = typeof newStatus === 'number'
                 ? (statusFromNumber[newStatus] as AppointmentStatus) || 'Upcoming'
                 : newStatus;
