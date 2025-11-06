@@ -27,8 +27,6 @@ export function useEmployeeTimeLog() {
     pageNumber: 1,
     pageSize: 10,
     search: '',
-    startDate: '',
-    endDate: '',
   });
   const [stats, setStats] = useState<TimeLogStats>({
     totalHoursToday: 0,
@@ -50,24 +48,17 @@ export function useEmployeeTimeLog() {
     let totalHoursToday = 0;
     let totalHoursThisWeek = 0;
     let totalHoursThisMonth = 0;
-    let activeLogs = 0;
+    let activeLogs = 0; // Always 0 since backend only returns completed logs
     let completedLogsToday = 0;
 
     logs.forEach(log => {
       const logDate = new Date(log.startDateTime);
       const hours = log.hoursLogged || 0;
 
-      // Count active logs
-      if (log.isActive) {
-        activeLogs++;
-      }
-
-      // Today's stats
+      // Today's stats - all logs are completed
       if (logDate >= today) {
         totalHoursToday += hours;
-        if (!log.isActive) {
-          completedLogsToday++;
-        }
+        completedLogsToday++;
       }
 
       // This week's stats
@@ -100,25 +91,30 @@ export function useEmployeeTimeLog() {
         pageNumber: 1,
         pageSize: 10,
         search: '',
-        startDate: '',
-        endDate: '',
         ...searchParams,
         ...params
       };
       
       const response = await employeeTimeLogAPI.getMyTimeLogs(queryParams);
       
-      if (response.success) {
-        setTimeLogs(response.data);
-        setPagination(response.pagination);
-        setStats(calculateStats(response.data));
-        
-        // Update search params state if new params were provided
-        if (params) {
-          setSearchParams(queryParams);
-        }
-      } else {
-        throw new Error('Failed to fetch time logs');
+      setTimeLogs(response.data);
+      
+      // Calculate pagination data
+      const totalPages = Math.ceil(response.totalCount / response.pageSize);
+      setPagination({
+        totalCount: response.totalCount,
+        pageNumber: response.pageNumber,
+        pageSize: response.pageSize,
+        totalPages,
+        hasNextPage: response.pageNumber < totalPages,
+        hasPreviousPage: response.pageNumber > 1,
+      });
+      
+      setStats(calculateStats(response.data));
+      
+      // Update search params state if new params were provided
+      if (params) {
+        setSearchParams(queryParams);
       }
     } catch (err) {
       console.error('Error fetching time logs:', err);
