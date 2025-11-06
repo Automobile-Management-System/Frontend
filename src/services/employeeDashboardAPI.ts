@@ -45,8 +45,8 @@ class EmployeeDashboardAPI {
     }
   }
 
-  async getTodayUpcomingAppointments(): Promise<EmployeeDashboardStats> {
-    return this.makeRequest<EmployeeDashboardStats>('/EmployeeDashboard/appointments/today/upcoming-count');
+  async getUpcomingAppointments(): Promise<EmployeeDashboardStats> {
+    return this.makeRequest<EmployeeDashboardStats>('/EmployeeDashboard/appointments/upcoming-count');
   }
 
   async getInProgressAppointments(): Promise<InProgressAppointments> {
@@ -61,12 +61,12 @@ class EmployeeDashboardAPI {
     return this.makeRequest<CompletedModificationCount>('/EmployeeDashboard/appointments/completed/modifications-count');
   }
 
-  async getTodayRecentServices(): Promise<RecentServicesResponse> {
-    return this.makeRequest<RecentServicesResponse>('/EmployeeDashboard/appointments/today/recent-services');
+  async getRecentServices(): Promise<RecentServicesResponse> {
+    return this.makeRequest<RecentServicesResponse>('/EmployeeDashboard/appointments/recent-services');
   }
 
-  async getTodayRecentModifications(): Promise<RecentModificationsResponse> {
-    return this.makeRequest<RecentModificationsResponse>('/EmployeeDashboard/appointments/today/recent-modifications');
+  async getRecentModifications(): Promise<RecentModificationsResponse> {
+    return this.makeRequest<RecentModificationsResponse>('/EmployeeDashboard/appointments/recent-modifications');
   }
 }
 
