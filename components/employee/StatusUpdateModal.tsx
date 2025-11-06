@@ -28,12 +28,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const statusOptions: {
-    value: AppointmentStatus; // Value is now always a string
+    value: AppointmentStatus; 
     label: string;
     description: string;
   }[] = [
     {
-      value: "Upcoming", // Changed from "Pending"
+      value: "Upcoming", 
       label: "Upcoming",
       description: "Service is scheduled and upcoming",
     },
@@ -70,8 +70,11 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-lg font-bold text-white">Update Status</h3>
-              <p className="text-blue-100 text-sm">
-                {appointment.serviceTitle}
+              {/* Updated to use new fields */}
+              <p className="text-blue-100 text-sm truncate">
+                {appointment.serviceType === 'Service'
+                  ? appointment.customerVehicleName
+                  : appointment.modificationTitle}
               </p>
             </div>
             <button
@@ -148,7 +151,6 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                     value={option.value}
                     checked={selectedStatus === option.value}
                     onChange={(e) => {
-                      // Value is now always a string from statusOptions
                       setSelectedStatus(e.target.value as AppointmentStatus);
                     }}
                     className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500"
