@@ -221,9 +221,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     <Dialog open={isOpen} onOpenChange={onCloseAction}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Book New Appointment</DialogTitle>
+          <DialogTitle>Book New Service</DialogTitle>
           <DialogDescription>
-            Select services, date, time slot, and vehicle for your appointment.
+            Select services, date, time slot, and vehicle for your service.
           </DialogDescription>
         </DialogHeader>
 
