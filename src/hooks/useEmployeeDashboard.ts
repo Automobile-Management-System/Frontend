@@ -11,7 +11,7 @@ import {
 } from '@/types/employeeDashboard';
 
 interface DashboardData {
-  todayStats: EmployeeDashboardStats | null;
+  upcomingStats: EmployeeDashboardStats | null;
   inProgressStats: InProgressAppointments | null;
   completedServiceCount: CompletedServiceCount | null;
   completedModificationCount: CompletedModificationCount | null;
@@ -27,7 +27,7 @@ interface DashboardState extends DashboardData {
 
 export const useEmployeeDashboard = (): DashboardState => {
   const [dashboardData, setDashboardData] = useState<DashboardData>({
-    todayStats: null,
+    upcomingStats: null,
     inProgressStats: null,
     completedServiceCount: null,
     completedModificationCount: null,
@@ -43,18 +43,18 @@ export const useEmployeeDashboard = (): DashboardState => {
       setError(null);
 
       // Fetch all data in parallel
-      const [todayStats, inProgressStats, completedServiceCount, completedModificationCount, recentServices, recentModifications] = await Promise.all([
-        employeeDashboardAPI.getTodayUpcomingAppointments(),
+      const [upcomingStats, inProgressStats, completedServiceCount, completedModificationCount, recentServices, recentModifications] = await Promise.all([
+        employeeDashboardAPI.getUpcomingAppointments(),
         employeeDashboardAPI.getInProgressAppointments(),
         employeeDashboardAPI.getCompletedServiceCount(),
         employeeDashboardAPI.getCompletedModificationCount(),
-        employeeDashboardAPI.getTodayRecentServices(),
-        employeeDashboardAPI.getTodayRecentModifications(),
+        employeeDashboardAPI.getRecentServices(),
+        employeeDashboardAPI.getRecentModifications(),
       ]);
 
       // Debug: Log the API responses to see the actual data structure
       console.log('=== API DEBUG RESPONSES ===');
-      console.log('todayStats:', JSON.stringify(todayStats, null, 2));
+      console.log('upcomingStats:', JSON.stringify(upcomingStats, null, 2));
       console.log('inProgressStats:', JSON.stringify(inProgressStats, null, 2));
       console.log('completedServiceCount:', JSON.stringify(completedServiceCount, null, 2));
       console.log('completedModificationCount:', JSON.stringify(completedModificationCount, null, 2));
@@ -63,7 +63,7 @@ export const useEmployeeDashboard = (): DashboardState => {
       console.log('=== END API DEBUG ===');
 
       setDashboardData({
-        todayStats,
+        upcomingStats,
         inProgressStats,
         completedServiceCount,
         completedModificationCount,

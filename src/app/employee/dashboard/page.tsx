@@ -2,7 +2,9 @@
 
 import { 
   Calendar, PlayCircle, Clock, CheckCircle2, 
-  TrendingUp, ArrowRight, MoreHorizontal, RefreshCw, AlertCircle 
+  TrendingUp, ArrowRight, MoreHorizontal, RefreshCw, AlertCircle, 
+  Car,
+  User
 } from 'lucide-react';
 import { useEmployeeDashboard } from '@/hooks/useEmployeeDashboard';
 import { useAuth } from '@/app/context/AuthContext';
@@ -13,7 +15,7 @@ import { formatApiDate, formatApiTime } from '@/lib/apiUtils';
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const { 
-    todayStats, 
+    upcomingStats, 
     inProgressStats, 
     completedServiceCount,
     completedModificationCount,
@@ -160,7 +162,7 @@ export default function EmployeeDashboard() {
       <div className="space-y-6">
         <LoadingCard title="Dashboard Header" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <LoadingCard title="Today's Appointments" />
+          <LoadingCard title="Upcoming Appointments" />
           <LoadingCard title="In Progress" />
           <LoadingCard title="Completed Services" />
           <LoadingCard title="Completed Modifications" />
@@ -190,7 +192,7 @@ export default function EmployeeDashboard() {
             <h1 className="text-2xl font-bold text-gray-900">
               Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.firstName}!
             </h1>
-            <p className="text-gray-600 mt-1">Here's your schedule for today</p>
+            <p className="text-gray-600 mt-1">Here's your upcoming schedule and recent activity</p>
           </div>
           <div className="flex items-center space-x-4">
             <button 
@@ -201,9 +203,9 @@ export default function EmployeeDashboard() {
               <span>Refresh</span>
             </button>
             <div className="text-right">
-              <p className="text-sm text-gray-500">Today's Date</p>
+              <p className="text-sm text-gray-500">Current Date</p>
               <p className="text-lg font-semibold text-gray-900">
-                {todayStats?.date ? formatDate(todayStats.date) : new Date().toLocaleDateString()}
+                {new Date().toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -212,13 +214,13 @@ export default function EmployeeDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Today's Appointments */}
+        {/* Upcoming Appointments */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Today Upcoming Appointments</p>
+              <p className="text-sm font-medium text-gray-600">Upcoming Appointments</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
-                {todayStats?.upcomingAppointmentCount ?? 0}
+                {upcomingStats?.upcomingAppointmentCount ?? 0}
               </p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -277,14 +279,14 @@ export default function EmployeeDashboard() {
     
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Today's Recent Services */}
+        {/* Recent Services */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Today Recent Services</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Recent Services</h2>
             </div>
             <p className="text-sm text-gray-500 mt-1">
-              Your recent services for {recentServices?.date ? formatDate(recentServices.date) : 'today'}
+              Your recent services activity
             </p>
           </div>
           
@@ -306,16 +308,14 @@ export default function EmployeeDashboard() {
                         <p className="text-sm font-medium text-gray-900">
                           {formatTime(getServiceField(service, 'time', null))}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          V-{getServiceField(service, 'vehicleId', 'N/A')}
-                        </p>
+            
                       </div>
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">
                           {getServiceField(service, 'serviceName', 'Unknown Service')}
                         </h3>
                         <p className="text-xs text-gray-500">
-                          {getServiceField(service, 'customerName', 'Unknown Customer')} • {getServiceField(service, 'address', 'No address')}
+                          {formatDate(getServiceField(service, 'date', null))}
                         </p>
                       </div>
                     </div>
@@ -329,25 +329,25 @@ export default function EmployeeDashboard() {
               <EmptyState 
                 icon={Calendar}
                 title="No Recent Services"
-                description="No recent services found for today"
+                description="No recent services found"
               />
             )}
           </div>
         </div>
 
 
-        {/* Today's Recent Modifications */}
+        {/* Recent Modifications */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Today Recent Modifications</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Recent Modifications</h2>
               {/* <button className="flex items-center text-sm text-blue-600 hover:text-blue-700">
                 View All
                 <ArrowRight className="w-4 h-4 ml-1" />
               </button> */}
             </div>
             <p className="text-sm text-gray-500 mt-1">
-              Your recent modifications for {recentModifications?.date ? formatDate(recentModifications.date) : 'today'}
+              Your recent modifications activity
             </p>
           </div>
           
@@ -389,7 +389,7 @@ export default function EmployeeDashboard() {
                           {getModificationField(modification, 'projectName', 'Unknown Project')}
                         </h3>
                         <p className="text-xs text-gray-500">
-                          {getModificationField(modification, 'customerName', 'Unknown Customer')} • Due {formatDate(getModificationField(modification, 'dueDate', null))}
+                          {formatDate(getModificationField(modification, 'dueDate', null))}
                         </p>
                       </div>
                     </div>
@@ -403,7 +403,7 @@ export default function EmployeeDashboard() {
               <EmptyState 
                 icon={TrendingUp}
                 title="No Recent Modifications"
-                description="No recent modifications found for today"
+                description="No recent modifications found"
               />
             )}
           </div>
@@ -416,25 +416,25 @@ export default function EmployeeDashboard() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button 
-            onClick={() => window.location.href = '/employee/appointments'}
-            className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-          >
-            <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-            <span className="text-sm font-medium text-gray-700">View All Appointments</span>
-          </button>
-          <button 
             onClick={() => window.location.href = '/employee/service_progress'}
             className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
           >
-            <TrendingUp className="w-5 h-5 text-green-600 mr-2" />
-            <span className="text-sm font-medium text-gray-700">Update Progress</span>
+            <Car className="w-5 h-5 text-blue-600 mr-2" />
+            <span className="text-sm font-medium text-gray-700">View Service Progress</span>
+          </button> 
+          <button 
+            onClick={() => window.location.href = '/employee/time_log'}
+            className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+          >
+            <Calendar className="w-5 h-5 text-green-600 mr-2" />
+            <span className="text-sm font-medium text-gray-700">View Time Log</span>
           </button>
           <button 
             onClick={() => window.location.href = '/customer/modifications'}
             className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
           >
-            <MoreHorizontal className="w-5 h-5 text-orange-600 mr-2" />
-            <span className="text-sm font-medium text-gray-700">Manage Modifications</span>
+            <User className="w-5 h-5 text-orange-600 mr-2" />
+            <span className="text-sm font-medium text-gray-700">View Profile</span>
           </button>
           <button 
             onClick={refreshData}
