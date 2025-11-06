@@ -335,7 +335,7 @@ export default function ProfileCard({ title, description, fields, onSave, onRefr
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-8xl mx-auto p-6 space-y-6">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>

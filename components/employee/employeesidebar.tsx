@@ -13,6 +13,7 @@ import {
   X,
   UserCircle,
   Clock,
+  Car,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../src/app/context/AuthContext';
@@ -36,11 +37,10 @@ export default function EmployeeSidebar({ isOpen, onToggle }: SidebarProps) {
   }
 
   const menuItems = [
-    { icon: Home, label: 'Dashboard', path: '/employee/dashboard', badge: null },
-    { icon: UserCircle, label: 'Profile', path: '/employee/profile', badge: null },
+    { icon: Home, label: 'Dashboard', path: '/employee/dashboard', badge: null }, 
     { icon: Package, label: 'Service Progress', path: '/employee/service_progress', badge: null },
-    { icon: ShoppingCart, label: 'Appointments', path: '/employee/appointments', badge: null },
-    { icon: Clock, label: 'Time Logs', path: '/employee/time-logs', badge: null }
+    { icon: Clock, label: 'Time Logs', path: '/employee/time-logs', badge: null },
+     { icon: UserCircle, label: 'Profile', path: '/employee/profile', badge: null }
   ];
 
   const handleNavigation = (path: string) => {
@@ -66,7 +66,8 @@ export default function EmployeeSidebar({ isOpen, onToggle }: SidebarProps) {
           <>
             <div className="flex items-center">
               <div className="ml-3">
-                <h1 className="text-lg font-bold">AutoServe</h1>
+              <span className="text-xl font-bold text-white">AutoServe</span>
+              <span className="text-xl font-bold text-orange-400"> 360</span>
               </div>
             </div>
             <button
@@ -79,7 +80,7 @@ export default function EmployeeSidebar({ isOpen, onToggle }: SidebarProps) {
         ) : (
           <div className="flex flex-col items-center space-y-2">
             <div className="w-10 h-10 bg-gradient-to-br bg-white rounded-lg flex items-center justify-center">
-              <span className="text-xl text-blue-900 font-bold">A</span>
+               <Car className="h-7 w-7 text-blue-900" />
             </div>
             <button
               onClick={onToggle}
@@ -122,15 +123,7 @@ export default function EmployeeSidebar({ isOpen, onToggle }: SidebarProps) {
 
       {/* Bottom Menu (consistent structure too) */}
       <div className="border-t border-blue-800">
-        <button
-          onClick={() => handleNavigation('/settings')}
-          className={`w-full flex items-center ${
-            isOpen ? 'px-4' : 'px-6'
-          } py-3 hover:bg-blue-800 transition`}
-        >
-          <Settings className="w-5 h-5 flex-shrink-0" />
-          {isOpen && <span className="ml-3">Settings</span>}
-        </button>
+       
         <button
           onClick={handleLogout}
           className={`w-full flex items-center ${
