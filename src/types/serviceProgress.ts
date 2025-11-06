@@ -1,30 +1,19 @@
-export type AppointmentStatus = 'Pending' | 'InProgress' | 'Completed';
+export type AppointmentStatus = 'Upcoming' | 'InProgress' | 'Completed' | 'Pending' | 'Rejected';
 
 export type ServiceType = 'Service' | 'Modifications';
 
-// Enum mappings for API communication
+// Enum mappings for API communication (Sending data TO API)
+// This now matches your C# Enums.cs file
 export const AppointmentStatusEnum = {
-  'Pending': 1,      // Now maps to 1 (Upcoming)
-  'Completed': 2,    // Now maps to 2 (Completed)
-  'InProgress': 3    // Now maps to 3 (In Progress)
+  'Pending': 0,
+  'Upcoming': 1,
+  'InProgress': 2,
+  'Completed': 3,
+  'Rejected': 4
 } as const;
 
-export const ServiceTypeEnum = {
-  'Service': 1,
-  'Modifications': 2
-} as const;
-
-// Reverse mappings for converting from API
-export const AppointmentStatusFromEnum = {
-  1: 'Pending',      // API sends 1 → display as "Upcoming" (Pending)
-  2: 'Completed',    // API sends 2 → display as "Completed"
-  3: 'InProgress'    // API sends 3 → display as "In Progress"
-} as const;
-
-export const ServiceTypeFromEnum = {
-  1: 'Service',
-  2: 'Modifications'
-} as const;
+// NOTE: AppointmentStatusFromEnum and ServiceTypeFromEnum have been removed
+// as the API now sends strings directly.
 
 export interface TimeLogDto {
   logId: number;
@@ -38,9 +27,9 @@ export interface ServiceProgressDto {
   appointmentId: number;
   serviceTitle: string;
   customerName: string;
-  customerId: number; // Made required - should be provided by backend
-  status: AppointmentStatus;
-  serviceType: ServiceType;
+  customerId: number; 
+  status: AppointmentStatus; // Type is now the string union
+  serviceType: ServiceType; // Type is now the string union
   appointmentDateTime: string;
   isTimerActive: boolean;
   currentTimerStartTime?: string;
@@ -55,7 +44,7 @@ export interface TimerActionDto {
 
 export interface UpdateStatusDto {
   appointmentId: number;
-  newStatus: AppointmentStatus;
+  newStatus: AppointmentStatus; // This is a string
   userId: number;
   notes?: string;
 }
