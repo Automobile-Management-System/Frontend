@@ -62,28 +62,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (userData.employeeId) {
               setUser(userData);
             } else {
-              // Only show backend integration warning once per session
-              if (!backendWarningShown) {
-                console.log("Employee ID not provided by profile endpoint.");
-                console.warn("🚨 BACKEND INTEGRATION REQUIRED:");
-                console.warn(
-                  "📋 Your backend team needs to implement ONE of these solutions:"
+              // Try to fetch employee ID from dashboard API as a workaround
+              try {
+                console.log(
+                  "Attempting to fetch employee ID from dashboard API..."
                 );
-                console.warn(
-                  "   1. Add 'employeeId' field to /api/Auth/profile response (RECOMMENDED)"
+                const dashboardResponse = await fetch(
+                  "http://localhost:5001/api/EmployeeDashboard/appointments/today/upcoming-count",
+                  {
+                    method: "GET",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                  }
                 );
-                console.warn(
-                  "   2. Create GET /api/Employee/GetByEmail/{email} endpoint"
-                );
-                console.warn("   3. Create GET /api/Employee/profile endpoint");
-                console.warn(
-                  "💡 See BACKEND_INTEGRATION_NEEDED.md for implementation details"
-                );
-                backendWarningShown = true;
-              }
 
-              // Set user without employee ID - will show appropriate error message
-              setUser(userData);
+                if (dashboardResponse.ok) {
+                  const dashboardData = await dashboardResponse.json();
+                  if (dashboardData.employeeId) {
+                    console.log(
+                      "✅ Successfully retrieved employee ID from dashboard API:",
+                      dashboardData.employeeId
+                    );
+                    setUser({
+                      ...userData,
+                      employeeId: dashboardData.employeeId,
+                    });
+                  } else {
+                    throw new Error("Dashboard API did not return employeeId");
+                  }
+                } else {
+                  throw new Error(
+                    `Dashboard API returned ${dashboardResponse.status}`
+                  );
+                }
+              } catch (dashboardError) {
+                console.error(
+                  "Failed to fetch employee ID from dashboard API:",
+                  dashboardError
+                );
+
+                // Only show backend integration warning once per session
+                if (!backendWarningShown) {
+                  console.log("Employee ID not provided by profile endpoint.");
+                  console.warn("🚨 BACKEND INTEGRATION REQUIRED:");
+                  console.warn(
+                    "📋 Your backend team needs to implement ONE of these solutions:"
+                  );
+                  console.warn(
+                    "   1. Add 'employeeId' field to /api/Auth/profile response (RECOMMENDED)"
+                  );
+                  console.warn(
+                    "   2. Create GET /api/Employee/GetByEmail/{email} endpoint"
+                  );
+                  console.warn(
+                    "   3. Create GET /api/Employee/profile endpoint"
+                  );
+                  console.warn(
+                    "💡 See BACKEND_INTEGRATION_NEEDED.md for implementation details"
+                  );
+                  backendWarningShown = true;
+                }
+
+                // Set user without employee ID - will show appropriate error message
+                setUser(userData);
+              }
             }
           } else {
             setUser(userData);

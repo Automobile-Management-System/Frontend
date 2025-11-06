@@ -13,6 +13,9 @@ import {
   FileInput,
   CalendarDays,
   UserCircle,
+  Database,
+  WrenchIcon,
+  DollarSign,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../src/app/context/AuthContext';
@@ -39,10 +42,10 @@ export default function AdminSidebar({ isOpen, onToggle }: SidebarProps) {
     { icon: Home, label: 'Dashboard', path: '/admin/dashboard', badge: null },
 
     { icon: User2, label: 'User Management', path: '/admin/user_management', badge: null },
-    { icon: Wrench, label: 'Service Management', path: '/admin/service_management', badge: null },
-    { icon: CalendarDays, label: 'Appointments', path: '/admin/ServiceAppointment', badge: null },
+    { icon: Database, label: 'Service Catalog', path: '/admin/service_management', badge: null },
+    { icon: WrenchIcon, label: 'Service Management', path: '/admin/ServiceAppointment', badge: null },
     { icon: FileInput, label: 'Modification Requests', path: '/admin/modification_requests', badge: null },
-    { icon: FileInput, label: 'Payment', path: '/admin/payment', badge: null },
+    { icon: DollarSign, label: 'Payment', path: '/admin/payment', badge: null },
     { icon: UserCircle, label: 'Profile', path: '/admin/profile', badge: null },
     { icon: ChartBar, label: 'Analytics', path: '/admin/analytics', badge: null },
 

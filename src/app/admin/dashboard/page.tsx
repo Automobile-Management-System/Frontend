@@ -1667,35 +1667,41 @@ export default function DashboardPage() {
         <CardContent>
           {currentUsers.length > 0 ? (
             <>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-4">User</th>
-                    <th className="text-left p-4">Email</th>
-                    <th className="text-left p-4">Role</th>
-                    <th className="text-left p-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentUsers.map(u => (
-                    <tr key={u.userId} className="border-b hover:bg-gray-50">
-                      <td className="p-4 flex items-center gap-3">
-                        <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <UserCheck className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <span className="font-medium">{u.fullName}</span>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">{u.email}</td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${getRoleColor(u.role)}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">{formatDate(u.registeredDate)}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">User</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Email</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Role</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Registered</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {currentUsers.map((user) => (
+                      <tr key={user.userId} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <UserCheck className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">{user.email}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">{formatDate(user.registeredDate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-between items-center mt-4">
                   <p className="text-sm text-gray-600">

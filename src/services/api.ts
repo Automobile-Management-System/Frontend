@@ -16,10 +16,18 @@ const vehicleInstance = axios.create({
   withCredentials: true,
 });
 
+// Type for creating request
+export interface CreateRequestPayload {
+  title: string;
+  description: string;
+  vehicleId: number;
+  requestDate: string; // ISO string
+}
+
 export const api = {
   // Requests
   getAllRequests: () => axiosInstance.get(''),
-  createRequest: (data: any) => axiosInstance.post('', data),
+  createRequest: (data: CreateRequestPayload) => axiosInstance.post('', data),
 
   // Vehicles
   getUserVehicles: () => vehicleInstance.get<Vehicle[]>('/my-vehicles'),
