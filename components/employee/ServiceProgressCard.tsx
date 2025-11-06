@@ -23,21 +23,47 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
   onStopAndComplete,
   onUpdateStatus,
 }) => {
-  const [elapsedTime, setElapsedTime] = useState<string>("0h 0m");
+  const [elapsedTime, setElapsedTime] = useState<string>("00:00:00");
 
   useEffect(() => {
-    if (!appointment.isTimerActive || !appointment.currentTimerStartTime)
+    if (!appointment.isTimerActive || !appointment.currentTimerStartTime) {
+      setElapsedTime("00:00:00"); // Reset when not active
       return;
+    }
 
     const interval = setInterval(() => {
-      const start = new Date(appointment.currentTimerStartTime!);
+      // *** FIX: Conditionally add 'Z' ***
+      // The startTimer API response includes a 'Z', but other times it might not.
+      // This check ensures we only add 'Z' if it's missing.
+      const timeString = appointment.currentTimerStartTime!;
+      const startTimeString = timeString.endsWith('Z') ? timeString : timeString + 'Z';
+      
+      const start = new Date(startTimeString);
+      // *** END FIX ***
+
       const now = new Date();
       const diff = now.getTime() - start.getTime();
 
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      // Handle clock sync issues or invalid date
+      if (diff < 0 || isNaN(diff)) {
+        setElapsedTime("00:00:00");
+        return;
+      }
 
-      setElapsedTime(`${hours}h ${minutes}m`);
+      // Calculate hours, minutes, and seconds
+      const totalSeconds = Math.floor(diff / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      // Format as HH:MM:SS
+      const formattedTime = [
+        String(hours).padStart(2, '0'),
+        String(minutes).padStart(2, '0'),
+        String(seconds).padStart(2, '0')
+      ].join(':');
+
+      setElapsedTime(formattedTime);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -154,6 +180,7 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
               <p className="text-sm font-medium text-gray-600 mb-1">
                 Time Tracking
               </p>
+              {/* This will now show HH:MM:SS when active */}
               <span className="text-xl font-bold text-gray-900">
                 {appointment.isTimerActive
                   ? elapsedTime
