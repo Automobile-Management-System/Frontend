@@ -81,11 +81,10 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
       : "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-300";
   };
 
-  // *** NEW FUNCTION ***
   // Converts decimal hours (e.g., 1.51) into 00H 00M 00S format
   const formatTotalTime = (totalHours: number) => {
     if (totalHours === 0 || isNaN(totalHours)) {
-      return "00H 00M 00S";
+      return "00h 00m 00s";
     }
     
     const totalSeconds = Math.floor(totalHours * 3600);
@@ -93,13 +92,13 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
+    // --- MODIFIED: Use H, M, S as requested ---
     return [
       String(hours).padStart(2, '0') + 'h',
       String(minutes).padStart(2, '0') + 'm',
       String(seconds).padStart(2, '0') + 's'
     ].join(' ');
   };
-  // *** END NEW FUNCTION ***
 
   return (
     <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-8 hover:shadow-3xl transition-all duration-300 hover:bg-white/90">
@@ -193,7 +192,6 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
               <p className="text-sm font-medium text-gray-600 mb-1">
                 Time Tracking
               </p>
-              {/* *** MODIFICATION: Use new formatTotalTime function *** */}
               <span className="text-xl font-bold text-gray-900">
                 {appointment.isTimerActive
                   ? elapsedTime
