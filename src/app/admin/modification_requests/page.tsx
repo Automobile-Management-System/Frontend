@@ -1790,9 +1790,9 @@ export default function ModificationRequestsPage() {
       {/* Toast Alert */}
       {toastMsg && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <Alert className={toast.type === 'success' ? 'bg-[#33CC7A] text-white border-[#33CC7A]' : 'bg-[#E63946] text-white border-[#E63946]'}>
+          <Alert className={toastMsg.type === 'success' ? 'bg-[#33CC7A] text-white border-[#33CC7A]' : 'bg-[#E63946] text-white border-[#E63946]'}>
             <AlertDescription className="font-semibold text-white text-base">
-              {toast.message}
+              {toastMsg.message}
             </AlertDescription>
           </Alert>
         </div>
