@@ -45,7 +45,7 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
 
   const getStatusColor = (status: AppointmentStatus) => {
     switch (status) {
-      case "Pending":
+      case "Upcoming": // Changed from "Pending"
         return "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-300";
       case "InProgress":
         return "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-300";
@@ -103,13 +103,8 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
             appointment.status
           )} transform hover:scale-105 transition-transform duration-200`}
         >
-          {typeof appointment.status === "string"
-            ? appointment.status === "Pending"
-              ? "Upcoming"
-              : appointment.status.replace(/([A-Z])/g, " $1").trim()
-            : String(appointment.status)
-                .replace(/([A-Z])/g, " $1")
-                .trim()}
+          {/* Simplified status display logic */}
+          {appointment.status.replace(/([A-Z])/g, " $1").trim()}
         </span>
       </div>
 

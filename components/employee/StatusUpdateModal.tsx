@@ -28,12 +28,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const statusOptions: {
-    value: AppointmentStatus | number;
+    value: AppointmentStatus; // Value is now always a string
     label: string;
     description: string;
   }[] = [
     {
-      value: "Pending",
+      value: "Upcoming", // Changed from "Pending"
       label: "Upcoming",
       description: "Service is scheduled and upcoming",
     },
@@ -148,14 +148,8 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                     value={option.value}
                     checked={selectedStatus === option.value}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      // Try to parse as number first, fallback to string
-                      const parsedValue = !isNaN(Number(value))
-                        ? Number(value)
-                        : value;
-                      setSelectedStatus(
-                        parsedValue as AppointmentStatus | number
-                      );
+                      // Value is now always a string from statusOptions
+                      setSelectedStatus(e.target.value as AppointmentStatus);
                     }}
                     className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500"
                   />

@@ -45,7 +45,7 @@ const ServiceProgressPage: React.FC = () => {
   const [showStatusModal, setShowStatusModal] = useState(false);
 
   useEffect(() => {
-    // Smart refresh every 30 seconds - only updates pending services, preserves non-pending ones
+    // Smart refresh every 30 seconds
     const interval = setInterval(() => {
       refreshPendingServices();
     }, 30000);
@@ -78,7 +78,7 @@ const ServiceProgressPage: React.FC = () => {
         alert(`${actionName} failed: ${errorMessage}`);
       }
 
-      // Smart refresh to sync pending services without losing non-pending ones
+      // Smart refresh to sync
       refreshPendingServices();
     }
   };
@@ -104,7 +104,7 @@ const ServiceProgressPage: React.FC = () => {
     }
 
     try {
-      // First stop the timer directly (without auto-refresh to avoid overriding local state)
+      // First stop the timer directly
       try {
         await stopTimerOnly(appointmentId, employeeId);
       } catch (timerError) {
@@ -112,20 +112,16 @@ const ServiceProgressPage: React.FC = () => {
           timerError instanceof Error ? timerError.message : "Unknown error";
         console.error("Stop timer failed:", errorMessage);
 
-        // If timer fails but it's because there's no active timer, that's okay - continue with status update
         if (!errorMessage.includes("No active timer found")) {
           throw timerError; // Re-throw if it's a different error
         }
       }
 
-      // Then update status to 2 (completed)
-      await updateStatus(appointmentId, 2, "Service completed");
+      // Then update status to 3 (Completed) based on C# Enum
+      await updateStatus(appointmentId, 3, "Service completed");
     } catch (error) {
       console.error("Failed to stop and complete:", error);
-      // Show user-friendly error message
       alert("Failed to complete the service. Please try again.");
-
-      // Smart refresh to sync pending services without losing non-pending ones
       refreshPendingServices();
     }
   };
@@ -336,7 +332,7 @@ const ServiceProgressPage: React.FC = () => {
   // Calculate statistics
   const stats = {
     total: serviceProgress.length,
-    pending: serviceProgress.filter((s) => s.status === "Pending").length,
+    pending: serviceProgress.filter((s) => s.status === "Upcoming").length, // Changed from Pending
     inProgress: serviceProgress.filter((s) => s.status === "InProgress").length,
     completed: serviceProgress.filter((s) => s.status === "Completed").length,
     activeTimers: serviceProgress.filter((s) => s.isTimerActive).length,
