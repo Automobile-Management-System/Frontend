@@ -4,43 +4,40 @@
 
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { MessageSquare, X, SendHorizonal, Bot, User, ShieldCheck } from "lucide-react";
-import { useAuth } from "@/app/context/AuthContext"; // Import the custom hook
-import ReactMarkdown from 'react-markdown'; // Import react-markdown
-import remarkGfm from 'remark-gfm'; // Import remark-gfm for table support etc.
+import { useAuth } from "@/app/context/AuthContext";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // --- Helper Functions & Types ---
-
 interface Message {
   sender: "user" | "bot";
   text: string;
 }
-
-const CHAT_HISTORY_KEY = "chatbot_history"; // Consider role-specific keys if needed
+const CHAT_HISTORY_KEY = "chatbot_history";
 
 // --- Role-Specific Configuration ---
 interface RoleConfig {
   headerTitle: string;
-  headerColor: string; // Tailwind bg color class
-  welcomeMessage: (name?: string) => string; // Function for personalized welcome
+  headerColor: string;
+  welcomeMessage: (name?: string) => string;
   icon: React.ReactNode;
 }
-
 const roleConfigs: Record<string, RoleConfig> = {
   Admin: {
     headerTitle: "Admin Assistant",
-    headerColor: "bg-red-600",
+    headerColor: "bg-blue-600", // Changed Admin color for consistency
     welcomeMessage: (name) => `Hello Admin ${name || ''}! How can I assist with system management?`,
-    icon: <ShieldCheck size={20} className="mr-2 flex-shrink-0" />, // Added flex-shrink-0
+    icon: <ShieldCheck size={20} className="mr-2 flex-shrink-0" />,
   },
   Employee: {
     headerTitle: "Employee Support",
-    headerColor: "bg-green-600",
+    headerColor: "bg-blue-600", // Changed Employee color for consistency
     welcomeMessage: (name) => `Hi ${name || 'there'}! Ready to log time or check tasks?`,
     icon: <Bot size={20} className="mr-2 flex-shrink-0" />,
   },
   Customer: {
     headerTitle: "Customer Support",
-    headerColor: "bg-blue-600",
+    headerColor: "bg-blue-600", // Kept Customer color
     welcomeMessage: (name) => `Hello ${name || ''}! How can AutoServe 360 help you today?`,
     icon: <User size={20} className="mr-2 flex-shrink-0" />,
   },
@@ -53,81 +50,72 @@ const roleConfigs: Record<string, RoleConfig> = {
 };
 
 // --- The Chatbot Component ---
-
 export default function GlobalChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMessage, setCurrentMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const { user, isLoading: isAuthLoading } = useAuth(); // Use the custom hook
+  const { user, isLoading: isAuthLoading } = useAuth();
 
-  // Determine user role and name or default to 'Guest'
   const userRole = user?.role || "Guest";
-  // Extract first name if user exists
-  const firstName = user?.firstName?.split(' ')[0]; // Get first name
+  const firstName = user?.firstName?.split(' ')[0];
   const config = roleConfigs[userRole] || roleConfigs.Guest;
-
-  // Generate the current welcome message
   const currentWelcomeMessage = config.welcomeMessage(firstName);
 
-  // Initialize chat history
-  const [chatHistory, setChatHistory] = useState<Message[]>(() => {
-    // Return default message immediately, useEffect will load history
-    return [{ sender: "bot", text: currentWelcomeMessage }];
-  });
+  const [chatHistory, setChatHistory] = useState<Message[]>(() => [
+    { sender: "bot", text: currentWelcomeMessage },
+  ]);
 
-  // Effect to load history from localStorage ONCE on mount
-   useEffect(() => {
-    if (typeof window !== 'undefined') { // Ensure localStorage is available
+  // --- Effects (Load History, Scroll, Save History) ---
+  useEffect(() => {
+    // Load history logic (slightly simplified)
+    if (typeof window !== 'undefined') {
         try {
             const storedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
             if (storedHistory) {
                 const parsed = JSON.parse(storedHistory);
                 if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(msg => msg.sender && msg.text)) {
-                    // Check if the loaded history only contains an old welcome message
-                    if (parsed.length === 1 && parsed[0].sender === 'bot' && Object.values(roleConfigs).some(rc => rc.welcomeMessage() === parsed[0].text && parsed[0].text !== currentWelcomeMessage)) {
-                         setChatHistory([{ sender: "bot", text: currentWelcomeMessage }]); // Reset to current welcome if only old welcome exists
-                    } else {
-                        setChatHistory(parsed);
-                    }
-                    return; // Stop execution if history loaded successfully
-                } else {
-                     console.warn("Invalid chat history structure found in localStorage.");
-                     localStorage.removeItem(CHAT_HISTORY_KEY); // Clear invalid data
+                    // Avoid resetting if history seems valid, let welcome message logic handle updates
+                     if (!(parsed.length === 1 && parsed[0].sender === 'bot')) {
+                          setChatHistory(parsed);
+                          return; // History loaded
+                     }
                 }
             }
-        } catch (error) {
-            console.error("Failed to parse chat history:", error);
-            localStorage.removeItem(CHAT_HISTORY_KEY); // Clear invalid data
-        }
-        // If loading failed or no history, ensure the current welcome message is set
+        } catch (error) { console.error("Failed to parse chat history:", error); localStorage.removeItem(CHAT_HISTORY_KEY); }
+        // Ensure current welcome message if no valid history loaded
         setChatHistory([{ sender: "bot", text: currentWelcomeMessage }]);
     }
-   }, [currentWelcomeMessage]); // Rerun if welcome message changes (e.g., login/logout)
+  }, []); // Run only once on mount
 
-
-  // Effect to scroll to bottom
   useEffect(() => {
-    if (isOpen && chatContainerRef.current) {
-      // Use setTimeout to allow DOM to update before scrolling
-      setTimeout(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-      }, 50); // Small delay
+    // Update welcome message if role changes and it's the only message
+    if (chatHistory.length === 1 && chatHistory[0].sender === 'bot' && chatHistory[0].text !== currentWelcomeMessage) {
+        setChatHistory([{ sender: "bot", text: currentWelcomeMessage }]);
     }
-  }, [chatHistory, isOpen]); // Rerun scroll logic when history or open state changes
+  }, [currentWelcomeMessage]); // Dependency on the calculated welcome message
 
-  // Effect to save chat history
   useEffect(() => {
-     if (chatHistory.length > 0) { // Don't save empty or just default state initially
+    // Scroll logic
+    if (isOpen && chatContainerRef.current) {
+      setTimeout(() => {
+        chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' }); // Added smooth scroll
+      }, 50);
+    }
+  }, [chatHistory, isOpen]);
+
+  useEffect(() => {
+    // Save history logic
+     if (chatHistory.length > 0 && !(chatHistory.length === 1 && chatHistory[0].text === currentWelcomeMessage)) { // Don't save just the initial welcome
         localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(chatHistory));
      }
-  }, [chatHistory]);
+  }, [chatHistory, currentWelcomeMessage]);
+  // --- End Effects ---
+
 
   const toggleChat = () => {
     setIsOpen(!isOpen);
-    // When opening, if only welcome message exists, ensure it's the latest one
+     // Refresh welcome message if opening and only default exists
      if (!isOpen && chatHistory.length === 1 && chatHistory[0].sender === 'bot' && chatHistory[0].text !== currentWelcomeMessage) {
         setChatHistory([{ sender: "bot", text: currentWelcomeMessage }]);
      }
@@ -139,7 +127,7 @@ export default function GlobalChatbot() {
     if (!messageText || isLoading) return;
 
     const userMessage: Message = { sender: "user", text: messageText };
-    setChatHistory((prevHistory) => [...prevHistory, userMessage]);
+    setChatHistory((prev) => [...prev, userMessage]);
     setCurrentMessage("");
     setIsLoading(true);
 
@@ -151,59 +139,44 @@ export default function GlobalChatbot() {
         credentials: "include",
       });
 
-      let botResponseText = "Sorry, I encountered an issue processing your request. Please try again later."; // More specific default error
+      let botResponseText = "Sorry, I encountered an issue processing your request. Please try again later.";
 
       if (!response.ok) {
         try {
           const errorData = await response.json();
-          if (response.status === 401) {
-            botResponseText = "Authentication error. Your session might have expired. Please log in again.";
-          } else {
-            botResponseText = errorData.answer || errorData.title || `Error ${response.status}: Could not process the request.`;
-          }
-        } catch {
-          botResponseText = `Network Error: ${response.status} ${response.statusText}. Please check your connection.`;
-        }
+          botResponseText = response.status === 401
+            ? "Authentication error. Your session might have expired. Please log in again."
+            : errorData.answer || errorData.title || `Error ${response.status}: Could not process the request.`;
+        } catch { botResponseText = `Network Error: ${response.status} ${response.statusText}. Please check connection.`; }
         console.error("Chatbot API Error:", botResponseText);
       } else {
         const data = await response.json();
-        // Check if the backend returned an actual answer
         botResponseText = data.answer || "I received a response, but couldn't find the answer content.";
       }
-
-      const botMessage: Message = { sender: "bot", text: botResponseText };
-      setChatHistory((prevHistory) => [...prevHistory, botMessage]);
-
+      setChatHistory((prev) => [...prev, { sender: "bot", text: botResponseText }]);
     } catch (error: any) {
       console.error("Chatbot API Request Failed:", error);
-      const errorMsg: Message = {
-        sender: "bot",
-        text: "Sorry, I'm having trouble connecting to the support service right now. Please check your network connection.",
-      };
-      setChatHistory((prevHistory) => [...prevHistory, errorMsg]);
+      setChatHistory((prev) => [...prev, { sender: "bot", text: "Sorry, connection trouble. Please check network." }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Don't render the button until auth status is known
-  if (isAuthLoading) {
-     return null; // Or a placeholder loading state if you prefer
-  }
+  if (isAuthLoading) return null; // Don't render until auth state is known
 
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] font-sans"> {/* Increased z-index */}
-      {/* Chat Popup Window with Transitions */}
-        <div
-            className={`transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
-        >
-          <div className="bg-white w-80 sm:w-96 h-[30rem] sm:h-[32rem] rounded-xl shadow-2xl flex flex-col border border-gray-200 overflow-hidden"> {/* Added overflow hidden */}
+    <div className="fixed bottom-6 right-6 z-[1000] font-sans">
+      {/* Chat Popup Window - Conditionally Rendered */}
+      {isOpen && (
+        // Added transition classes here for smooth appearance/disappearance
+        <div className="transition-all duration-300 ease-out origin-bottom-right transform scale-100 opacity-100">
+           <div className="bg-white w-80 sm:w-96 h-[30rem] sm:h-[32rem] rounded-xl shadow-2xl flex flex-col border border-gray-200 overflow-hidden">
 
             {/* Header */}
-            <div className={`${config.headerColor} text-white p-3 flex justify-between items-center shadow-md flex-shrink-0`}> {/* Added flex-shrink-0 */}
-              <div className="flex items-center min-w-0"> {/* Added min-w-0 for ellipsis */}
+            <div className={`${config.headerColor} text-white p-3 flex justify-between items-center shadow-md flex-shrink-0`}>
+              <div className="flex items-center min-w-0">
                 {config.icon}
-                <h3 className="font-semibold text-base truncate pr-2">{config.headerTitle}</h3> {/* Added truncate */}
+                <h3 className="font-semibold text-base truncate pr-2">{config.headerTitle}</h3>
               </div>
               <button
                 onClick={toggleChat}
@@ -217,32 +190,25 @@ export default function GlobalChatbot() {
             {/* Chat Body */}
             <div
               ref={chatContainerRef}
-              className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50/80" // Slightly transparent bg
-              aria-live="polite" // Accessibility for new messages
+              className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50/80"
+              aria-live="polite"
             >
               {chatHistory.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                >
+                <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`p-2.5 rounded-lg max-w-[85%] text-sm shadow-sm leading-relaxed prose prose-sm ${ // Added prose for markdown styling
+                    className={`p-2.5 rounded-lg max-w-[85%] text-sm shadow-sm leading-relaxed prose prose-sm ${
                       msg.sender === "user"
                         ? "bg-blue-500 text-white rounded-br-none"
                         : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
                     }`}
                   >
-                    {/* Render text using ReactMarkdown */}
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {msg.text}
-                    </ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
                   </div>
                 </div>
               ))}
-              {/* Loading Indicator */}
               {isLoading && (
                  <div className="flex justify-start">
-                    <div className="bg-white border border-gray-200 text-gray-500 p-2.5 rounded-lg rounded-bl-none max-w-xs text-sm shadow-sm flex items-center space-x-1.5"> {/* Increased spacing */}
+                    <div className="bg-white border border-gray-200 text-gray-500 p-2.5 rounded-lg rounded-bl-none max-w-xs text-sm shadow-sm flex items-center space-x-1.5">
                         <span className="h-2 w-2 bg-gray-400 rounded-full animate-pulse"></span>
                         <span className="h-2 w-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
                         <span className="h-2 w-2 bg-gray-400 rounded-full animate-pulse delay-300"></span>
@@ -252,11 +218,11 @@ export default function GlobalChatbot() {
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t bg-gray-100 flex items-center space-x-2 flex-shrink-0"> {/* Added flex-shrink-0 */}
+            <form onSubmit={handleSendMessage} className="p-3 border-t bg-gray-100 flex items-center space-x-2 flex-shrink-0">
               <input
                 type="text"
-                placeholder="Ask AutoServe 360..." // More specific placeholder
-                className="flex-1 border border-gray-300 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-200 transition" // Added border focus
+                placeholder="Ask AutoServe 360..."
+                className="flex-1 border border-gray-300 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-200 transition"
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 disabled={isLoading}
@@ -266,9 +232,7 @@ export default function GlobalChatbot() {
                 type="submit"
                 disabled={isLoading || !currentMessage.trim()}
                 className={`p-2 rounded-md text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                    isLoading || !currentMessage.trim()
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                    isLoading || !currentMessage.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
                 }`}
                 aria-label="Send message"
               >
@@ -277,18 +241,19 @@ export default function GlobalChatbot() {
             </form>
           </div>
         </div>
-
+      )}
 
       {/* Chat Toggle Icon Button */}
       <button
         onClick={toggleChat}
+        // Apply transition and conditional classes for visibility
         className={`fixed bottom-6 right-6 text-white p-4 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 ring-blue-500 transition-all duration-300 ease-out transform hover:scale-110 ${
-          isOpen ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'
-        } ${config.headerColor} hover:opacity-95`} // Use role color, smooth transition
-        aria-label={isOpen ? "Close chat" : "Open chat"}
+          isOpen ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100' // Hide button when chat is open
+        } ${config.headerColor} hover:opacity-95`}
+        aria-label="Open chat"
       >
-        {/* Render icon based on open state or role */}
-        {isOpen ? <X size={24} /> : (config.icon || <MessageSquare size={24} />)}
+        {/* Show appropriate icon (always show open icon here) */}
+        {config.icon || <MessageSquare size={24} />}
       </button>
     </div>
   );

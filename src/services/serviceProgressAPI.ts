@@ -115,12 +115,14 @@ class ServiceProgressAPI {
 
   async updateStatus(
     appointmentId: number, 
-    newStatus: AppointmentStatus, 
+    newStatus: AppointmentStatus | number, 
     userId: number, 
     notes?: string
   ): Promise<void> {
-    // Convert string status to numeric enum for API
-    const statusEnum = AppointmentStatusEnum[newStatus];
+    // Convert status to numeric enum for API
+    const statusEnum = typeof newStatus === 'number' 
+      ? newStatus 
+      : AppointmentStatusEnum[newStatus];
     
     const requestBody = { 
       appointmentId, 

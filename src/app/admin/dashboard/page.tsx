@@ -1,213 +1,490 @@
 'use client';
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
-  Users,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  ArrowRight,
-  AlertCircle,
-  UserCheck,
-  Wrench,
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  PointElement,
   LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { 
+  Users, 
+  Calendar, 
+  DollarSign, 
+  UserCheck, 
+  Wrench, 
+  TrendingUp, 
+  FileEdit,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Loader2
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+// Interfaces matching backend DTOs
+interface AdminDashboardOverviewDto {
+  totalRevenue: number;
+  totalUsers: number;
+  totalCustomers: number;
+  totalAppointments: number;
+}
+
+interface WeeklyRevenueDto {
+  days: string[];
+  revenueList: number[];
+}
+
+interface WeeklyAppointmentsDto {
+  days: string[];
+  appointments: number[];
+}
+
+interface RecentUserDto {
+  userId: number;
+  fullName: string;
+  email: string;
+  role: string;
+  profilePicture?: string;
+  registeredDate: string;
+}
+
+const API_BASE = 'http://localhost:5001/api';
 
 export default function DashboardPage() {
-  // Navigation handler
-  const handleNavigate = (tab: string) => {
-    console.log('Navigate to:', tab);
-    // Example: use Next.js router if needed
-    // router.push(`/admin/${tab}`)
+  const router = useRouter();
+  const [overview, setOverview] = useState<AdminDashboardOverviewDto | null>(null);
+  const [weeklyRevenue, setWeeklyRevenue] = useState<WeeklyRevenueDto | null>(null);
+  const [weeklyAppointments, setWeeklyAppointments] = useState<WeeklyAppointmentsDto | null>(null);
+  const [recentUsers, setRecentUsers] = useState<RecentUserDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    
+    try {
+      const [overviewRes, revenueRes, appointmentsRes, usersRes] = await Promise.all([
+        fetch(`${API_BASE}/AdminDashboard/overview`, { credentials: 'include' }),
+        fetch(`${API_BASE}/AdminDashboard/weekly-revenue`, { credentials: 'include' }),
+        fetch(`${API_BASE}/AdminDashboard/weekly-appointments`, { credentials: 'include' }),
+        fetch(`${API_BASE}/AdminDashboard/recent-users?count=50`, { credentials: 'include' }),
+      ]);
+
+      if (overviewRes.ok) {
+        const data = await overviewRes.json();
+        console.log('Overview data:', data);
+        setOverview(data);
+      }
+      
+      if (revenueRes.ok) {
+        const data = await revenueRes.json();
+        console.log('Weekly revenue data:', data);
+        setWeeklyRevenue(data);
+      }
+      
+      if (appointmentsRes.ok) {
+        const data = await appointmentsRes.json();
+        console.log('Weekly appointments data:', data);
+        setWeeklyAppointments(data);
+      }
+      
+      if (usersRes.ok) {
+        const data = await usersRes.json();
+        console.log('Recent users data:', data);
+        setRecentUsers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  // Stats data
-  const stats = [
-    { title: 'Total Users', value: '156', change: '+12%', icon: Users, color: 'text-blue-600', bgColor: 'bg-blue-100', trend: 'up' },
-    { title: 'Active Bookings', value: '48', change: '+8%', icon: Calendar, color: 'text-purple-600', bgColor: 'bg-purple-100', trend: 'up' },
-    { title: 'Monthly Revenue', value: '$15.4k', change: '-3%', icon: DollarSign, color: 'text-green-600', bgColor: 'bg-green-100', trend: 'down' },
-    { title: 'Growth Rate', value: '23.5%', change: '+5%', icon: TrendingUp, color: 'text-orange-600', bgColor: 'bg-orange-100', trend: 'up' },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2 text-gray-600">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2 text-gray-600">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Chart data
-  const revenueData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  const revenueChartData = weeklyRevenue ? {
+    labels: weeklyRevenue.days,
     datasets: [
-      { label: 'Revenue', data: [2400, 2800, 2200, 3100, 2900, 3400, 2600], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 2, tension: 0.4 },
+      {
+        label: 'Revenue (Rs)',
+        data: weeklyRevenue.revenueList,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#3b82f6',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+      },
     ],
+  } : null;
+
+  const appointmentsChartData = weeklyAppointments ? {
+    labels: weeklyAppointments.days,
+    datasets: [
+      {
+        label: 'Appointments',
+        data: weeklyAppointments.appointments,
+        backgroundColor: '#8b5cf6',
+        borderRadius: 6,
+      },
+    ],
+  } : null;
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#fff',
+        titleColor: '#000',
+        bodyColor: '#000',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: '#e5e7eb',
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+      },
+    },
   };
 
-  const appointmentsData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      { label: 'Appointments', data: [12, 15, 10, 18, 14, 22, 16], backgroundColor: '#8b5cf6', borderRadius: 6 },
-    ],
+  // Pagination
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = recentUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(recentUsers.length / usersPerPage);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
   };
 
-  const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#e5e7eb' } }, x: { grid: { display: false } } } };
-
-  const recentUsers = [
-    { id: '1', name: 'Emily Johnson', email: 'emily@example.com', role: 'customer', joined: '2 hours ago' },
-    { id: '2', name: 'Robert Chen', email: 'robert@example.com', role: 'employee', joined: '5 hours ago' },
-    { id: '3', name: 'Maria Garcia', email: 'maria@example.com', role: 'customer', joined: '1 day ago' },
-  ];
-
-  const systemAlerts = [
-    { id: '1', type: 'warning', message: '3 pending modification requests need review', action: 'services' },
-    { id: '2', type: 'info', message: '2 employees need to complete safety training', action: 'users' },
-    { id: '3', type: 'success', message: 'System backup completed successfully', action: null },
-  ];
+  const getRoleColor = (role: string) => {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return 'bg-red-100 text-red-700';
+      case 'employee':
+        return 'bg-blue-100 text-blue-700';
+      case 'customer':
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold">Admin Dashboard</h2>
-        <p className="text-gray-600 mt-1">System overview and key metrics</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-semibold text-[#0B2E66]">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-1">System overview and key metrics</p>
+        </div>
+        <Button
+          onClick={() => fetchDashboardData(true)}
+          disabled={refreshing}
+          className="bg-[#0B2E66] hover:bg-[#0a2757] text-white border-0 shadow-sm"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm">{stat.title}</CardTitle>
-                <div className={`h-8 w-8 rounded-full ${stat.bgColor} flex items-center justify-center`}>
-                  <Icon className={`h-4 w-4 ${stat.color}`} />
+      {/* Overview Cards */}
+      {overview && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Users</p>
+                  <p className="text-3xl font-semibold mt-2">{overview.totalUsers}</p>
+                  <p className="text-xs text-gray-500 mt-1">All registered users</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl">{stat.value}</div>
-                <p className={`text-xs mt-1 ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>{stat.change} from last month</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Revenue</p>
+                  <p className="text-3xl font-semibold mt-2">Rs {overview.totalRevenue.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 mt-1">All time revenue</p>
+                </div>
+                <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Appointments</p>
+                  <p className="text-3xl font-semibold mt-2">{overview.totalAppointments}</p>
+                  <p className="text-xs text-gray-500 mt-1">All bookings</p>
+                </div>
+                <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-gray-600">Total Customers</p>
+                  <p className="text-3xl font-semibold mt-2">{overview.totalCustomers}</p>
+                  <p className="text-xs text-gray-500 mt-1">Active customers</p>
+                </div>
+                <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <UserCheck className="h-5 w-5 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="bg-white border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Weekly Revenue</CardTitle>
-            <CardDescription>Revenue trends for the past week</CardDescription>
+            <CardTitle className="text-lg font-semibold">Weekly Revenue</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Revenue trends for the past week</CardDescription>
           </CardHeader>
-          <CardContent className="h-[200px]">
-            <Line data={revenueData} options={chartOptions} />
+          <CardContent className="h-[300px]">
+            {revenueChartData ? (
+              <Line data={revenueChartData} options={chartOptions} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p className="text-sm">No revenue data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Weekly Appointments</CardTitle>
-            <CardDescription>Booking volume for the past week</CardDescription>
+            <CardTitle className="text-lg font-semibold">Weekly Appointments</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Booking volume for the past week</CardDescription>
           </CardHeader>
-          <CardContent className="h-[200px]">
-            <Bar data={appointmentsData} options={chartOptions} />
+          <CardContent className="h-[300px]">
+            {appointmentsChartData ? (
+              <Bar data={appointmentsChartData} options={chartOptions} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p className="text-sm">No appointment data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Users & Alerts */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent Users */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Users</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => handleNavigate('users')}>
-                View All
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+      {/* Recent Users */}
+      <Card className="bg-white border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Recent Users</CardTitle>
+          <CardDescription className="text-sm text-gray-500">Newly registered users</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {currentUsers.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">User</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Email</th>
+                      <th className="text-left p-4 text-sm font-medium text-gray-700">Role</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentUsers.map((user) => (
+                      <tr key={user.userId} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <UserCheck className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">{user.email}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                            {user.role}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, recentUsers.length)} of {recentUsers.length} users
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={currentPage === page ? "bg-blue-600 text-white" : ""}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-48 text-gray-500">
+              <p className="text-sm">No users found</p>
             </div>
-            <CardDescription>Newly registered users</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <UserCheck className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm">{user.name}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Badge variant="outline" className="capitalize">{user.role}</Badge>
-                  <p className="text-xs text-gray-500 mt-1">{user.joined}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* System Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle>System Alerts</CardTitle>
-            <CardDescription>Important notifications and actions</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {systemAlerts.map((alert) => (
-              <div key={alert.id} className={`p-3 rounded-lg ${alert.type === 'warning' ? 'bg-yellow-50 border border-yellow-200' : alert.type === 'info' ? 'bg-blue-50 border border-blue-200' : 'bg-green-50 border border-green-200'}`}>
-                <div className="flex items-start gap-3">
-                  <AlertCircle className={`h-5 w-5 mt-0.5 ${alert.type === 'warning' ? 'text-yellow-600' : alert.type === 'info' ? 'text-blue-600' : 'text-green-600'}`} />
-                  <div className="flex-1">
-                    <p className="text-sm">{alert.message}</p>
-                    {alert.action && <Button variant="link" size="sm" className="px-0 h-auto mt-1" onClick={() => handleNavigate(alert.action!)}>Take Action →</Button>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="bg-white border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common administrative tasks</CardDescription>
+          <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+          <CardDescription className="text-sm text-gray-500">Common administrative tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => handleNavigate('users')}>
-              <Users className="h-6 w-6" />
-              <span>Manage Users</span>
+            <Button
+              variant="outline"
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              onClick={() => router.push('/admin/user_management')}
+            >
+              <Users className="h-8 w-8 text-blue-600" />
+              <span className="font-medium">Manage Users</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => handleNavigate('services')}>
-              <Wrench className="h-6 w-6" />
-              <span>Manage Services</span>
+            <Button
+              variant="outline"
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+              onClick={() => router.push('/admin/service_management')}
+            >
+              <Wrench className="h-8 w-8 text-purple-600" />
+              <span className="font-medium">Manage Services</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => handleNavigate('analytics')}>
-              <TrendingUp className="h-6 w-6" />
-              <span>View Analytics</span>
+            <Button
+              variant="outline"
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-green-50 hover:border-green-300 transition-colors"
+              onClick={() => router.push('/admin/analytics')}
+            >
+              <TrendingUp className="h-8 w-8 text-green-600" />
+              <span className="font-medium">View Analytics</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => alert('Export report functionality')}>
-              <svg className="h-6 w-6" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span>Export Reports</span>
+            <Button
+              variant="outline"
+              className="h-auto py-6 flex flex-col gap-3 hover:bg-orange-50 hover:border-orange-300 transition-colors"
+              onClick={() => router.push('/admin/modification_requests')}
+            >
+              <FileEdit className="h-8 w-8 text-orange-600" />
+              <span className="font-medium">Modification Requests</span>
             </Button>
           </div>
         </CardContent>

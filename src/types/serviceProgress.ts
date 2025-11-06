@@ -1,14 +1,12 @@
-export type AppointmentStatus = 'Pending' | 'InProgress' | 'Completed' | 'Cancelled' | 'Rejected';
+export type AppointmentStatus = 'Pending' | 'InProgress' | 'Completed';
 
 export type ServiceType = 'Service' | 'Modifications';
 
 // Enum mappings for API communication
 export const AppointmentStatusEnum = {
-  'Pending': 0,
-  'InProgress': 1,
-  'Completed': 2,
-  'Cancelled': 3,
-  'Rejected': 4
+  'Pending': 1,      // Now maps to 1 (Upcoming)
+  'Completed': 2,    // Now maps to 2 (Completed)
+  'InProgress': 3    // Now maps to 3 (In Progress)
 } as const;
 
 export const ServiceTypeEnum = {
@@ -18,11 +16,9 @@ export const ServiceTypeEnum = {
 
 // Reverse mappings for converting from API
 export const AppointmentStatusFromEnum = {
-  0: 'Pending',
-  1: 'InProgress', 
-  2: 'Completed',
-  3: 'Cancelled',
-  4: 'Rejected'
+  1: 'Pending',      // API sends 1 → display as "Upcoming" (Pending)
+  2: 'Completed',    // API sends 2 → display as "Completed"
+  3: 'InProgress'    // API sends 3 → display as "In Progress"
 } as const;
 
 export const ServiceTypeFromEnum = {

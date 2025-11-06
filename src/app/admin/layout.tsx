@@ -1,10 +1,11 @@
+
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import AdminSidebar from "../../../components/admin/adminsidebar"; // Use your existing sidebar
-import { useState } from 'react';
+import AdminSidebar from "../../../components/admin/adminsidebar"; 
+import { Toaster } from 'sonner';
 
 // Simple loading component
 const LoadingSpinner = () => (
@@ -20,37 +21,34 @@ export default function AdminLayout({
 }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Your sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(true); 
 
   useEffect(() => {
-    if (isLoading) {
-      return; // Wait for session check
-    }
+    if (isLoading) return; // Wait for session check
 
-    // If not loading and no user, redirect to login
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // If user exists but is not an Admin, redirect to unauthorized page
     if (user.role !== 'Admin') {
-      router.push('/unauthorized'); // Or redirect to their own dashboard
+      router.push('/unauthorized'); // Redirect if not admin
     }
   }, [user, isLoading, router]);
 
-  // Show loading spinner while checking auth or if user is not authorized
   if (isLoading || !user || user.role !== 'Admin') {
     return <LoadingSpinner />;
   }
 
-  // User is authenticated and authorized as Admin
   const handleToggle = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Toaster for toast notifications */}
+      <Toaster position="top-right" richColors />
+
       <AdminSidebar isOpen={sidebarOpen} onToggle={handleToggle} />
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>

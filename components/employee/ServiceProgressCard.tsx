@@ -51,10 +51,6 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
         return "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-300";
       case "Completed":
         return "bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border-emerald-300";
-      case "Cancelled":
-        return "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-red-300";
-      case "Rejected":
-        return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-300";
       default:
         return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-300";
     }
@@ -108,7 +104,9 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
           )} transform hover:scale-105 transition-transform duration-200`}
         >
           {typeof appointment.status === "string"
-            ? appointment.status.replace(/([A-Z])/g, " $1").trim()
+            ? appointment.status === "Pending"
+              ? "Upcoming"
+              : appointment.status.replace(/([A-Z])/g, " $1").trim()
             : String(appointment.status)
                 .replace(/([A-Z])/g, " $1")
                 .trim()}
@@ -165,10 +163,7 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
         {!appointment.isTimerActive ? (
           <button
             onClick={onStartTimer}
-            disabled={
-              appointment.status === "Completed" ||
-              appointment.status === "Cancelled"
-            }
+            disabled={appointment.status === "Completed"}
             className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-2xl hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:transform-none"
           >
             <svg
@@ -232,10 +227,7 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
 
         <button
           onClick={onUpdateStatus}
-          disabled={
-            appointment.status === "Completed" ||
-            appointment.status === "Cancelled"
-          }
+          disabled={appointment.status === "Completed"}
           className="bg-white border-2 border-gray-200 text-gray-700 px-6 py-4 rounded-2xl hover:bg-gray-50 hover:border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:border-gray-200 flex items-center justify-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:transform-none"
         >
           <svg

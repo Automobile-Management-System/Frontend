@@ -82,12 +82,6 @@ export function Footer() {
               >
                 Services
               </Link>
-              <Link 
-                href="/contact" 
-                className="flex items-center text-sm text-gray-300 hover:text-gray-50 transition-colors group"
-              >
-                Contact
-              </Link>
             </div>
           </div>
 
