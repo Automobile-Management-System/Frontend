@@ -23,21 +23,40 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
   onStopAndComplete,
   onUpdateStatus,
 }) => {
-  const [elapsedTime, setElapsedTime] = useState<string>("0h 0m");
+  const [elapsedTime, setElapsedTime] = useState<string>("00:00:00");
 
   useEffect(() => {
-    if (!appointment.isTimerActive || !appointment.currentTimerStartTime)
+    if (!appointment.isTimerActive || !appointment.currentTimerStartTime) {
+      setElapsedTime("00:00:00"); // Reset when not active
       return;
+    }
 
     const interval = setInterval(() => {
-      const start = new Date(appointment.currentTimerStartTime!);
+      const timeString = appointment.currentTimerStartTime!;
+      const startTimeString = timeString.endsWith('Z') ? timeString : timeString + 'Z';
+      
+      const start = new Date(startTimeString);
+
       const now = new Date();
       const diff = now.getTime() - start.getTime();
 
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      if (diff < 0 || isNaN(diff)) {
+        setElapsedTime("00:00:00");
+        return;
+      }
 
-      setElapsedTime(`${hours}h ${minutes}m`);
+      const totalSeconds = Math.floor(diff / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      const formattedTime = [
+        String(hours).padStart(2, '0'),
+        String(minutes).padStart(2, '0'),
+        String(seconds).padStart(2, '0')
+      ].join(':');
+
+      setElapsedTime(formattedTime);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -60,6 +79,25 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
     return type === "Service"
       ? "bg-gradient-to-r from-violet-100 to-purple-100 text-violet-800 border-violet-300"
       : "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-300";
+  };
+
+  // Converts decimal hours (e.g., 1.51) into 00H 00M 00S format
+  const formatTotalTime = (totalHours: number) => {
+    if (totalHours === 0 || isNaN(totalHours)) {
+      return "00h 00m 00s";
+    }
+    
+    const totalSeconds = Math.floor(totalHours * 3600);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    // --- MODIFIED: Use H, M, S as requested ---
+    return [
+      String(hours).padStart(2, '0') + 'h',
+      String(minutes).padStart(2, '0') + 'm',
+      String(seconds).padStart(2, '0') + 's'
+    ].join(' ');
   };
 
   return (
@@ -157,7 +195,7 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
               <span className="text-xl font-bold text-gray-900">
                 {appointment.isTimerActive
                   ? elapsedTime
-                  : `${appointment.totalTimeLogged.toFixed(1)}h logged`}
+                  : `${formatTotalTime(appointment.totalTimeLogged)} logged`}
               </span>
             </div>
           </div>

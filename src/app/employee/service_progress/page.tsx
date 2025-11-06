@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ServiceProgressCard } from "../../../../components/employee/ServiceProgressCard";
 import { StatusUpdateModal } from "../../../../components/employee/StatusUpdateModal";
 import { useServiceProgress } from "../../../hooks/useServiceProgress";
@@ -9,23 +9,17 @@ import {
   ServiceProgressDto,
   AppointmentStatus,
 } from "../../../types/serviceProgress";
+// Import new components
+import { ServiceProgressControls } from "../../../../components/employee/ServiceProgressControls";
+import { PaginationControls } from "../../../../components/employee/PaginationControls";
+import { QuickFilterTabs } from "../../../../components/employee/QuickFilterTabs"; // --- NEW IMPORT ---
+import { RefreshCw } from "lucide-react";
+
+const ITEMS_PER_PAGE = 10;
 
 const ServiceProgressPage: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
-
-  // Get employeeId from authenticated user
   const employeeId = user?.employeeId || user?.id;
-
-  // Debug logging - only on initial mount
-  useEffect(() => {
-    console.log("ServiceProgressPage - User:", user);
-    console.log(
-      "ServiceProgressPage - User employeeId property:",
-      user?.employeeId
-    );
-    console.log("ServiceProgressPage - User id property:", user?.id);
-    console.log("ServiceProgressPage - Final Employee ID:", employeeId);
-  }, [user, employeeId]); // Only log when user or employeeId changes
 
   const {
     serviceProgress,
@@ -44,14 +38,82 @@ const ServiceProgressPage: React.FC = () => {
     useState<ServiceProgressDto | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
 
+  // --- State for Controls ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOption, setSortOption] = useState("date-desc");
+  // --- MODIFIED: Replaced statusFilter with activeTabFilter ---
+  const [activeTabFilter, setActiveTabFilter] = useState("all"); // 'all', 'Upcoming', 'InProgress', 'Completed', 'Active'
+  // ---
+
   useEffect(() => {
-    // Smart refresh every 30 seconds
     const interval = setInterval(() => {
       refreshPendingServices();
     }, 30000);
-
     return () => clearInterval(interval);
   }, [refreshPendingServices]);
+
+
+  // --- Logic for Filtering, Sorting, and Pagination ---
+
+  const filteredAndSortedProgress = useMemo(() => {
+    let items = serviceProgress;
+
+    // --- MODIFIED: Use activeTabFilter ---
+    // 1. Filter by Tab
+    if (activeTabFilter === "Active") {
+      items = items.filter(item => item.isTimerActive);
+    } else if (activeTabFilter !== "all") {
+      items = items.filter(item => item.status === activeTabFilter);
+    }
+
+    // 2. Filter by Search Term
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      items = items.filter(item =>
+        item.customerName.toLowerCase().includes(lowerSearch) ||
+        item.customerVehicleName.toLowerCase().includes(lowerSearch) ||
+        (item.modificationTitle && item.modificationTitle.toLowerCase().includes(lowerSearch)) ||
+        item.serviceNames.some(name => name.toLowerCase().includes(lowerSearch))
+      );
+    }
+
+    // 3. Sort
+    switch (sortOption) {
+      case "date-asc":
+        items.sort((a, b) => new Date(a.appointmentDateTime).getTime() - new Date(b.appointmentDateTime).getTime());
+        break;
+      case "status":
+        const statusOrder: { [key in AppointmentStatus]?: number } = {
+          "InProgress": 1,
+          "Upcoming": 2,
+          "Completed": 3,
+        };
+        items.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
+        break;
+      case "date-desc":
+      default:
+        items.sort((a, b) => new Date(b.appointmentDateTime).getTime() - new Date(a.appointmentDateTime).getTime());
+        break;
+    }
+
+    return items;
+  }, [serviceProgress, activeTabFilter, searchTerm, sortOption]); // --- MODIFIED: Use activeTabFilter
+
+  // Reset to page 1 if filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTabFilter, searchTerm, sortOption]); // --- MODIFIED: Use activeTabFilter
+
+  const totalPages = Math.ceil(filteredAndSortedProgress.length / ITEMS_PER_PAGE);
+
+  const paginatedProgress = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedProgress.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAndSortedProgress, currentPage]);
+
+  // --- End of New Logic ---
+
 
   const handleTimerAction = async (
     action: () => Promise<any>,
@@ -61,24 +123,17 @@ const ServiceProgressPage: React.FC = () => {
       alert("Employee ID not found. Please refresh the page and try again.");
       return;
     }
-
     try {
       await action();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       console.error(`${actionName} failed:`, errorMessage);
-
-      // Show user-friendly error message
       if (errorMessage.includes("No active timer found")) {
-        alert(
-          "No active timer found for this appointment. The timer may have already been stopped."
-        );
+        alert("No active timer found. The timer may have already been stopped.");
       } else {
         alert(`${actionName} failed: ${errorMessage}`);
       }
-
-      // Smart refresh to sync
       refreshPendingServices();
     }
   };
@@ -102,23 +157,18 @@ const ServiceProgressPage: React.FC = () => {
       alert("Employee ID not found. Please refresh the page and try again.");
       return;
     }
-
     try {
-      // First stop the timer directly
       try {
         await stopTimerOnly(appointmentId, employeeId);
       } catch (timerError) {
         const errorMessage =
           timerError instanceof Error ? timerError.message : "Unknown error";
         console.error("Stop timer failed:", errorMessage);
-
         if (!errorMessage.includes("No active timer found")) {
-          throw timerError; // Re-throw if it's a different error
+          throw timerError;
         }
       }
-
-      // Then update status to 3 (Completed) based on C# Enum
-      await updateStatus(appointmentId, 3, "Service completed");
+      await updateStatus(appointmentId, 3, "Service completed"); // 3 = Completed
     } catch (error) {
       console.error("Failed to stop and complete:", error);
       alert("Failed to complete the service. Please try again.");
@@ -131,7 +181,7 @@ const ServiceProgressPage: React.FC = () => {
     setShowStatusModal(true);
   };
 
-  // Show loading state while authentication is being checked
+  // --- (No changes to auth/loading/error blocks) ---
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
@@ -140,7 +190,6 @@ const ServiceProgressPage: React.FC = () => {
     );
   }
 
-  // Check if user is authenticated and is an employee
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
@@ -329,49 +378,37 @@ const ServiceProgressPage: React.FC = () => {
     );
   }
 
-  // Calculate statistics
+  // --- MODIFIED: Renamed 'pending' to 'upcoming' and added 'all' & 'active' ---
   const stats = {
-    total: serviceProgress.length,
-    pending: serviceProgress.filter((s) => s.status === "Upcoming").length, // Changed from Pending
+    all: serviceProgress.length,
+    upcoming: serviceProgress.filter((s) => s.status === "Upcoming").length,
     inProgress: serviceProgress.filter((s) => s.status === "InProgress").length,
     completed: serviceProgress.filter((s) => s.status === "Completed").length,
-    activeTimers: serviceProgress.filter((s) => s.isTimerActive).length,
+    active: serviceProgress.filter((s) => s.isTimerActive).length,
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg shadow-lg border-b border-white/20">
+      <div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Service Progress Dashboard
+              <h1 className="text-3xl font-bold text-gray-900">
+                Service Progress
               </h1>
-              <p className="text-gray-600 mt-2 text-lg">
-                Welcome back, {user.firstName}! Monitor your service
+              <p className="text-gray-600 mt-1">
+                Monitor your service
                 appointments and track work progress
               </p>
             </div>
             <button
-              onClick={refreshData}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg flex items-center gap-3"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              Refresh Data
-            </button>
+          onClick={refreshData}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
           </div>
         </div>
       </div>
@@ -401,7 +438,7 @@ const ServiceProgressPage: React.FC = () => {
                   Total Services
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {stats.total}
+                  {stats.all}
                 </p>
               </div>
             </div>
@@ -427,7 +464,7 @@ const ServiceProgressPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Upcoming</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {stats.pending}
+                  {stats.upcoming}
                 </p>
               </div>
             </div>
@@ -510,7 +547,7 @@ const ServiceProgressPage: React.FC = () => {
                   Active Timers
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {stats.activeTimers}
+                  {stats.active}
                 </p>
               </div>
             </div>
@@ -518,38 +555,53 @@ const ServiceProgressPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* --- Main Content --- */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        {serviceProgress.length === 0 ? (
+        
+        {/* --- Search/Sort Controls --- */}
+        <ServiceProgressControls
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          sortOption={sortOption}
+          onSortChange={setSortOption}
+          totalResults={filteredAndSortedProgress.length}
+        />
+
+        {/* --- NEW: Quick Filter Tabs --- */}
+        <QuickFilterTabs
+          activeTab={activeTabFilter}
+          onTabChange={setActiveTabFilter}
+          counts={{
+            all: stats.all,
+            upcoming: stats.upcoming,
+            inProgress: stats.inProgress,
+            completed: stats.completed,
+            active: stats.active,
+          }}
+        />
+
+        {/* --- List of Cards --- */}
+        {paginatedProgress.length === 0 ? (
           <div className="text-center py-16">
             <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-12 border border-white/20 shadow-2xl max-w-md mx-auto">
               <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg
-                  className="w-10 h-10 text-blue-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                  />
+                <svg className="w-10 h-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                No Services Available
+                No Services Found
               </h3>
               <p className="text-gray-600 text-lg leading-relaxed">
-                You don't have any service appointments assigned at the moment.
-                Check back later or contact your supervisor.
+                {serviceProgress.length === 0
+                  ? "You don't have any service appointments assigned."
+                  : "No services match your current filters. Try adjusting your search."}
               </p>
             </div>
           </div>
         ) : (
           <div className="space-y-8">
-            {serviceProgress.map((appointment, index) => (
+            {paginatedProgress.map((appointment, index) => (
               <div
                 key={appointment.appointmentId}
                 className="transform hover:scale-[1.02] transition-all duration-300"
@@ -590,23 +642,22 @@ const ServiceProgressPage: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* --- Pagination --- */}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
-      {/* Add custom CSS for animations */}
       <style jsx>{`
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
-      {/* Status Update Modal */}
       {showStatusModal && selectedAppointment && (
         <StatusUpdateModal
           appointment={selectedAppointment}
