@@ -68,3 +68,18 @@ export interface AppointmentResponse {
   vehicleRegistrationNumber?: string;
   vehicle?: Partial<Vehicle>;
 }
+
+export type AppointmentStatus = 'All' | 'Pending' | 'Upcoming' | 'InProgress' | 'Completed' | 'Rejected';
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+}
+
+export interface AppointmentFilters {
+  status?: AppointmentStatus;
+  pageNumber?: number;
+  pageSize?: number;
+}

@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Car, Edit, X } from "lucide-react";
+import { Calendar, Clock, Car, Edit, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { BookingForm } from "@/components/appointments/BookingForm";
 import { appointmentAPI } from "@/services/appointmentAPI";
-import { AppointmentResponse, Vehicle } from "@/types/appointments";
+import { AppointmentResponse, Vehicle, AppointmentStatus, PaginatedResponse, AppointmentFilters } from "@/types/appointments";
 import { handleApiError, formatApiDate, formatApiTime } from "@/lib/apiUtils";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -32,7 +32,7 @@ if (typeof document !== "undefined") {
   document.head.appendChild(styleSheet);
 }
 
-const AppointmentsPage = () => {
+const ServicesPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([]);
@@ -40,6 +40,15 @@ const AppointmentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBookingForm, setShowBookingForm] = useState(false);
+  
+  // Pagination and filtering state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus>('All');
+  const [allAppointmentsCount, setAllAppointmentsCount] = useState(0);
+  
+  const statusOptions: AppointmentStatus[] = ['All', 'Pending', 'Upcoming', 'InProgress', 'Completed', 'Rejected'];
 
   useEffect(() => {
     if (!authLoading) {
@@ -53,31 +62,48 @@ const AppointmentsPage = () => {
       }
       loadAppointments();
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, currentPage, selectedStatus]);
 
   const loadAppointments = async () => {
     try {
       setLoading(true);
       setError("");
-      // Load appointments and vehicles in parallel for vehicle number mapping
-      const [appts, vehs] = await Promise.all([
-        appointmentAPI.getMyAppointments(),
-        appointmentAPI.getVehicles().catch((e) => {
+      
+      // Load vehicles for mapping (can be done once)
+      if (vehicles.length === 0) {
+        const vehs = await appointmentAPI.getVehicles().catch((e) => {
           console.warn("Failed to load vehicles for mapping:", e);
           return [] as Vehicle[];
-        }),
-      ]);
+        });
+        setVehicles(vehs);
+      }
+
+      // Load paginated appointments
+      const filters: AppointmentFilters = {
+        pageNumber: currentPage,
+        pageSize: pageSize,
+        status: selectedStatus
+      };
+
+      const response: PaginatedResponse<AppointmentResponse> = await appointmentAPI.getMyAppointmentsPaginated(filters);
+      
       // Sort: latest created appointments first (by appointmentId descending)
-      // Higher appointmentId typically means more recently created
-      const sorted = appts.sort((a, b) => {
+      const sorted = response.data.sort((a, b) => {
         return b.appointmentId - a.appointmentId; // Descending order (newest first)
       });
+      
       setAppointments(sorted);
-      setVehicles(vehs);
+      setTotalCount(response.totalCount);
+      
+      // If this is the first load or "All" status, also get total count for "All" tab
+      if (selectedStatus === 'All') {
+        setAllAppointmentsCount(response.totalCount);
+      }
     } catch (err) {
       console.error("Failed to load appointments:", err);
       setError(handleApiError(err));
       setAppointments([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -219,7 +245,7 @@ const AppointmentsPage = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+      <div className="min-h-screen  p-6">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse space-y-6">
             <div className="bg-white rounded-2xl p-8 shadow-lg">
@@ -242,14 +268,14 @@ const AppointmentsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen p-6">
+      <div className="max-w-8xl mx-auto">
         {/* Enhanced Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
+        <div className="p-8 mb-8">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6">
             <div className="space-y-2">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                My Appointments
+                My Services
               </h1>
               <p className="text-gray-600 text-lg">
                 Manage your service appointments with ease
@@ -261,7 +287,7 @@ const AppointmentsPage = () => {
                 className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a87] hover:from-[#1a2f4f] hover:to-[#1e3a5f] text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
                 <span className="mr-2">+</span>
-                Book New Appointment
+                Book New Service
               </Button>
             </div>
           </div>
@@ -276,6 +302,31 @@ const AppointmentsPage = () => {
           </div>
         )}
 
+        {/* Status Tabs */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-3 mb-4">
+            {statusOptions.map((status) => (
+              <button
+                key={status}
+                onClick={() => {
+                  setSelectedStatus(status);
+                  setCurrentPage(1); // Reset to first page when filter changes
+                }}
+                className={`px-4 py-2 rounded-full font-medium transition ${
+                  selectedStatus === status
+                    ? 'bg-[#1e3a5f] text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                }`}
+              >
+                {status === 'InProgress' ? 'In Progress' : status}
+              </button>
+            ))}
+          </div>
+          <div className="text-sm text-gray-500 px-1">
+            Showing {appointments.length} of {totalCount} Service
+          </div>
+        </div>
+
         {/* Enhanced Appointments List */}
         <div className="space-y-6">
           {appointments.length === 0 ? (
@@ -284,7 +335,7 @@ const AppointmentsPage = () => {
                 <Car className="h-10 w-10 text-gray-400" />
               </div>
               <h3 className="text-2xl font-semibold text-gray-900 mb-3">
-                No appointments yet
+                No Service yet
               </h3>
               <p className="text-gray-600 mb-8 max-w-md mx-auto">
                 Start your journey with us by booking your first service
@@ -295,7 +346,7 @@ const AppointmentsPage = () => {
                 className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a87] hover:from-[#1a2f4f] hover:to-[#1e3a5f] text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
                 <span className="mr-2">+</span>
-                Book Your First Appointment
+                Book Your First Service
               </Button>
             </div>
           ) : (
@@ -415,14 +466,82 @@ const AppointmentsPage = () => {
           )}
         </div>
 
+        {/* Pagination */}
+        {totalCount > pageSize && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mt-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-sm text-gray-700">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                  className="flex items-center gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
+                    const totalPages = Math.ceil(totalCount / pageSize);
+                    let pageNum;
+                    
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage > totalPages - 3) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        disabled={loading}
+                        className="w-10 h-10"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage >= Math.ceil(totalCount / pageSize) || loading}
+                  className="flex items-center gap-1"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <BookingForm
           isOpen={showBookingForm}
           onCloseAction={() => setShowBookingForm(false)}
-          onSuccessAction={loadAppointments}
+          onSuccessAction={() => {
+            setCurrentPage(1); // Reset to first page to see new appointment
+            loadAppointments();
+          }}
         />
       </div>
     </div>
   );
 };
 
-export default AppointmentsPage;
+export default ServicesPage;

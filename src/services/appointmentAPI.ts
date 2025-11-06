@@ -8,6 +8,9 @@ import {
   CreateAppointmentDto,
   AppointmentResponse,
   AvailabilityResponse,
+  PaginatedResponse,
+  AppointmentFilters,
+  AppointmentStatus,
 } from "@/types/appointments";
 
 const getAuthHeaders = () => {
@@ -287,5 +290,107 @@ export const appointmentAPI = {
     }
 
     return response.json();
+  },
+
+  async getMyAppointmentsPaginated(filters: AppointmentFilters = {}): Promise<PaginatedResponse<AppointmentResponse>> {
+    const {
+      status = 'All',
+      pageNumber = 1,
+      pageSize = 10
+    } = filters;
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      pageNumber: pageNumber.toString(),
+      pageSize: pageSize.toString()
+    });
+
+    // Add status filter if not "All"
+    // Backend expects numeric enum values for status
+    if (status && status !== 'All') {
+      const statusValue = this.getStatusEnumValue(status);
+      if (statusValue !== null) {
+        params.append('status', statusValue.toString());
+      }
+    }
+
+    try {
+      // Use the correct backend endpoint name "fliter" (note: this appears to be a typo in the backend)
+      const response = await fetch(
+        `${config.apiBaseUrl}/Appointment/fliter?${params.toString()}`,
+        getFetchOptions()
+      );
+
+      if (!response.ok) {
+        throw new ApiError("Failed to fetch paginated appointments", response.status);
+      }
+
+      return response.json();
+    } catch (error) {
+      // Fallback to regular endpoint if paginated endpoint is not available
+      console.warn("Paginated endpoint not available, falling back to regular endpoint:", error);
+      
+      const allAppointments = await this.getMyAppointments();
+      
+      // Apply client-side filtering
+      let filteredAppointments = allAppointments;
+      if (status && status !== 'All') {
+        filteredAppointments = allAppointments.filter(apt => {
+          const aptStatus = this.normalizeStatus(apt.status);
+          return aptStatus === status;
+        });
+      }
+      
+      // Apply client-side pagination
+      const startIndex = (pageNumber - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = filteredAppointments.slice(startIndex, endIndex);
+      
+      return {
+        data: paginatedData,
+        totalCount: filteredAppointments.length,
+        pageNumber: pageNumber,
+        pageSize: pageSize
+      };
+    }
+  },
+
+  // Helper method to convert status string to backend enum value
+  getStatusEnumValue(status: AppointmentStatus): number | null {
+    switch (status) {
+      case "Pending": return 0;
+      case "Upcoming": return 1;
+      case "InProgress": return 2;
+      case "Completed": return 3;
+      case "Rejected": return 4;
+      default: return null;
+    }
+  },
+
+  // Helper method to normalize status from backend
+  normalizeStatus(status: any): AppointmentStatus {
+    if (typeof status === "number") {
+      switch (status) {
+        case 0: return "Pending";
+        case 1: return "Upcoming";
+        case 2: return "InProgress";
+        case 3: return "Completed";
+        case 4: return "Rejected";
+        default: return "Pending";
+      }
+    }
+    
+    const normalized = String(status || "")
+      .replace(/\s+/g, "")
+      .toLowerCase();
+    
+    switch (normalized) {
+      case "pending": return "Pending";
+      case "upcoming": return "Upcoming";
+      case "inprogress": return "InProgress";
+      case "completed": return "Completed";
+      case "rejected": return "Rejected";
+      default: return "Pending";
+    }
   },
 };

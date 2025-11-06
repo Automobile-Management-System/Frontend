@@ -49,7 +49,7 @@ export function Navbar() {
   const loggedInMobileNavItems = [
     { name: "Home", href: "/" },
     { name: "Dashboard", href: isLoggedIn ? getDashboardByRole(user.role) : "/" },
-    { name: "My Appointments", href: "/customer/appointments" },
+    { name: "Services", href: "/customer/services" },
     { name: "Modifications", href: "/customer/modifications" },
     { name: "Payments", href: "/customer/payments" },
     { name: "About", href: "/about" }
@@ -126,8 +126,8 @@ export function Navbar() {
               <Link href={getDashboardByRole(user.role)} className={getLinkClassName(getDashboardByRole(user.role), true)}>
                 <span>Dashboard</span>
               </Link>
-              <Link href="/customer/appointments" className={getLinkClassName("/customer/appointments", true)}>
-                <span>Appointments</span>
+              <Link href="/customer/services" className={getLinkClassName("/customer/services", true)}>
+                <span>Services</span>
               </Link>
               <Link href="/customer/modifications" className={getLinkClassName("/customer/modifications", true)}>
                 <span>Modifications</span>
