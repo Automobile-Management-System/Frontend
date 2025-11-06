@@ -43,36 +43,43 @@ export const useServiceProgress = (employeeId: number) => {
 
     const startTimer = useCallback(async (appointmentId: number, userId: number): Promise<TimerResponseDto> => {
         try {
-            // *** MODIFICATION START ***
             // Get the result from the API
             const result = await serviceProgressAPI.startTimer(appointmentId, userId);
             
-            if (result.success && result.activeTimeLog) {
-                // Update state immediately instead of waiting for refresh
-                // This provides the new currentTimerStartTime instantly
+            // ***MODIFICATION START***
+            // This logic is now simpler and more robust.
+            // If the API call was successful, we MUST update the state locally.
+            if (result.success) {
+                
+                // Get the start time from the API. If it fails to return one,
+                // use the current time as an immediate fallback.
+                const startTime = result.activeTimeLog?.startDateTime || new Date().toISOString();
+
                 setServiceProgress(prevServices =>
                     prevServices.map(service =>
                         service.appointmentId === appointmentId
                             ? {
                                 ...service,
                                 isTimerActive: true,
-                                currentTimerStartTime: result.activeTimeLog?.startDateTime, // Use the new time from the API
+                                currentTimerStartTime: startTime, // Use the new time
                                 status: "InProgress" // Also update status locally
                               }
                             : service
                     )
                 );
             } else {
-                // If it failed or didn't return a log, refresh as a fallback
-                refreshPendingServices();
+                 // The API itself reported a failure (e.g., "timer already running")
+                 throw new Error(result.message || "Failed to start timer");
             }
             return result;
-            // *** MODIFICATION END ***
+            // ***MODIFICATION END***
+
         } catch (error) {
-            refreshPendingServices(); // Refresh on error
+            // Only refresh the *entire* list if the API call itself throws an error
+            refreshPendingServices(); 
             throw error;
         }
-    }, [refreshPendingServices]); // Keep dependency
+    }, [refreshPendingServices]); // keep dependency for the catch block
 
     const pauseTimer = useCallback(async (appointmentId: number, userId: number): Promise<TimerResponseDto> => {
         try {
