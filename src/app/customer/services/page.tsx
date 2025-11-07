@@ -3,10 +3,24 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Car, Edit, X, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Car,
+  Edit,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { BookingForm } from "@/components/appointments/BookingForm";
 import { appointmentAPI } from "@/services/appointmentAPI";
-import { AppointmentResponse, Vehicle, AppointmentStatus, PaginatedResponse, AppointmentFilters } from "@/types/appointments";
+import {
+  AppointmentResponse,
+  Vehicle,
+  AppointmentStatus,
+  PaginatedResponse,
+  AppointmentFilters,
+} from "@/types/appointments";
 import { handleApiError, formatApiDate, formatApiTime } from "@/lib/apiUtils";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -40,15 +54,23 @@ const ServicesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBookingForm, setShowBookingForm] = useState(false);
-  
+
   // Pagination and filtering state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus>('All');
+  const [selectedStatus, setSelectedStatus] =
+    useState<AppointmentStatus>("All");
   const [allAppointmentsCount, setAllAppointmentsCount] = useState(0);
-  
-  const statusOptions: AppointmentStatus[] = ['All', 'Pending', 'Upcoming', 'InProgress', 'Completed', 'Rejected'];
+
+  const statusOptions: AppointmentStatus[] = [
+    "All",
+    "Pending",
+    "Upcoming",
+    "InProgress",
+    "Completed",
+    "Rejected",
+  ];
 
   useEffect(() => {
     if (!authLoading) {
@@ -68,7 +90,7 @@ const ServicesPage = () => {
     try {
       setLoading(true);
       setError("");
-      
+
       // Load vehicles for mapping (can be done once)
       if (vehicles.length === 0) {
         const vehs = await appointmentAPI.getVehicles().catch((e) => {
@@ -82,21 +104,22 @@ const ServicesPage = () => {
       const filters: AppointmentFilters = {
         pageNumber: currentPage,
         pageSize: pageSize,
-        status: selectedStatus
+        status: selectedStatus,
       };
 
-      const response: PaginatedResponse<AppointmentResponse> = await appointmentAPI.getMyAppointmentsPaginated(filters);
-      
+      const response: PaginatedResponse<AppointmentResponse> =
+        await appointmentAPI.getMyAppointmentsPaginated(filters);
+
       // Sort: latest created appointments first (by appointmentId descending)
       const sorted = response.data.sort((a, b) => {
         return b.appointmentId - a.appointmentId; // Descending order (newest first)
       });
-      
+
       setAppointments(sorted);
       setTotalCount(response.totalCount);
-      
+
       // If this is the first load or "All" status, also get total count for "All" tab
-      if (selectedStatus === 'All') {
+      if (selectedStatus === "All") {
         setAllAppointmentsCount(response.totalCount);
       }
     } catch (err) {
@@ -314,11 +337,11 @@ const ServicesPage = () => {
                 }}
                 className={`px-4 py-2 rounded-full font-medium transition ${
                   selectedStatus === status
-                    ? 'bg-[#1e3a5f] text-white shadow-lg'
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                    ? "bg-[#1e3a5f] text-white shadow-lg"
+                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm"
                 }`}
               >
-                {status === 'InProgress' ? 'In Progress' : status}
+                {status === "InProgress" ? "In Progress" : status}
               </button>
             ))}
           </div>
@@ -387,9 +410,9 @@ const ServicesPage = () => {
                           Total Amount
                         </p>
                         <p className="text-2xl font-bold text-green-600">
-                          $
+                          Lkr{" "}
                           {appointment.services
-                            .reduce((sum, s) => sum + s.basePrice, 0)
+                            .reduce((sum, s) => sum + (s.basePrice ?? 0), 0)
                             .toFixed(2)}
                         </p>
                       </div>
@@ -451,7 +474,7 @@ const ServicesPage = () => {
                           >
                             <span>{service.serviceName}</span>
                             <span className="text-green-600 font-bold">
-                              ${service.basePrice}
+                              Lkr {(service.basePrice ?? 0).toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -471,9 +494,11 @@ const ServicesPage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mt-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-sm text-gray-700">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
+                results
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -485,42 +510,49 @@ const ServicesPage = () => {
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
-                
+
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
-                    const totalPages = Math.ceil(totalCount / pageSize);
-                    let pageNum;
-                    
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage > totalPages - 3) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
+                  {Array.from(
+                    { length: Math.min(5, Math.ceil(totalCount / pageSize)) },
+                    (_, i) => {
+                      const totalPages = Math.ceil(totalCount / pageSize);
+                      let pageNum;
+
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage > totalPages - 3) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={
+                            currentPage === pageNum ? "default" : "outline"
+                          }
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          disabled={loading}
+                          className="w-10 h-10"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
                     }
-                    
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(pageNum)}
-                        disabled={loading}
-                        className="w-10 h-10"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                  )}
                 </div>
-                
+
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage >= Math.ceil(totalCount / pageSize) || loading}
+                  disabled={
+                    currentPage >= Math.ceil(totalCount / pageSize) || loading
+                  }
                   className="flex items-center gap-1"
                 >
                   Next
