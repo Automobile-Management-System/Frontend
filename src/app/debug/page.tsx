@@ -39,9 +39,6 @@ const DebugPage = () => {
             <strong>Customer ID:</strong> {user?.customerId || "Not found"}
           </li>
           <li>
-            <strong>Admin ID:</strong> {user?.adminId || "Not found"}
-          </li>
-          <li>
             <strong>General ID:</strong> {(user as any)?.id || "Not found"}
           </li>
         </ul>
