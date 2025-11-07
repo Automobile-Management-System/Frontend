@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AutoMobile - Campus Frontend
 
-## Getting Started
+## Project Overview
+This project is a web application designed for managing automobile-related tasks on campus. It provides users with an intuitive interface to interact with various features related to automobiles.
 
-First, run the development server:
+## Features
+- User authentication and authorization
+- Vehicle registration and management
+- Maintenance scheduling
+- Notifications for upcoming services
+- User-friendly dashboard
 
+## Installation
+To set up the project locally, follow these steps:
+
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/Automobile-Management-System/Backend.git
+    ```
+2. Navigate to the project directory:
+    ```bash
+    cd AutoMobile-Campus/Frontend
+    ```
+3. Install the required dependencies:
+    ```bash
+    npm install
+    ```
+
+## Usage
+To start the development server, run:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm start
 ```
+Open your browser and navigate to `http://localhost:3000` to view the application.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Contributing
+We welcome contributions! Please fork the repository and submit a pull request for any changes.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## License
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Contact
+For any inquiries, please reach out to [your.email@example.com](mailto:your.email@example.com).
 
-## Learn More
+## Project Structure
+The project is organized into several key directories:
 
-To learn more about Next.js, take a look at the following resources:
+- **/src**: Contains all the source code for the application.
+    - **/components**: Reusable UI components.
+    - **/pages**: Different pages of the application.
+    - **/services**: API service calls and business logic.
+    - **/styles**: CSS and styling files.
+    
+## Technologies Used
+This project utilizes the following technologies:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **React**: A JavaScript library for building user interfaces.
+- **Node.js**: JavaScript runtime for server-side programming.
+- **Express**: Web framework for Node.js.
+- **MongoDB**: NoSQL database for data storage.
+- **JWT**: For user authentication.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Acknowledgments
+- Thanks to the contributors and the open-source community for their support and resources.
