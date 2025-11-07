@@ -84,7 +84,7 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
   // Converts decimal hours (e.g., 1.51) into 00H 00M 00S format
   const formatTotalTime = (totalHours: number) => {
     if (totalHours === 0 || isNaN(totalHours)) {
-      return "00h 00m 00s";
+      return "00h 00m ";
     }
     
     const totalSeconds = Math.floor(totalHours * 3600);
@@ -96,7 +96,6 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
     return [
       String(hours).padStart(2, '0') + 'h',
       String(minutes).padStart(2, '0') + 'm',
-      String(seconds).padStart(2, '0') + 's'
     ].join(' ');
   };
 
