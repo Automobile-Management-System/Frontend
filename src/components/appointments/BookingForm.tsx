@@ -188,31 +188,38 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   const getAvailableSlots = () => {
     // Get current time in Sri Lanka timezone (Asia/Colombo)
     const now = new Date();
-    const sriLankaTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
-    const currentDate = sriLankaTime.toISOString().split('T')[0];
+    const sriLankaTime = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Colombo" })
+    );
+    const currentDate = sriLankaTime.toISOString().split("T")[0];
     const currentHour = sriLankaTime.getHours();
     const currentMinutes = sriLankaTime.getMinutes();
-    
+
     return timeSlots.filter((slot) => {
       const availabilitySlot = availability.find((a) => a.slot === slot.index);
-      const isAvailable = Boolean(availabilitySlot?.available) && (availabilitySlot?.count || 0) > 0;
-      
+      const isAvailable =
+        Boolean(availabilitySlot?.available) &&
+        (availabilitySlot?.count || 0) > 0;
+
       // If the selected date is today, check if the time slot has passed
       if (selectedDate === currentDate) {
         // Extract the start hour from the slot value (e.g., "08:00-10:00" -> 8)
-        const slotStartHour = parseInt(slot.value.split(':')[0], 10);
-        const slotStartMinutes = parseInt(slot.value.split(':')[1].split('-')[0], 10);
-        
+        const slotStartHour = parseInt(slot.value.split(":")[0], 10);
+        const slotStartMinutes = parseInt(
+          slot.value.split(":")[1].split("-")[0],
+          10
+        );
+
         // Create a time representation for comparison
         const currentTimeInMinutes = currentHour * 60 + currentMinutes;
         const slotStartTimeInMinutes = slotStartHour * 60 + slotStartMinutes;
-        
+
         // If the current time in Sri Lanka has passed the slot start time, hide it
         if (currentTimeInMinutes >= slotStartTimeInMinutes) {
           return false;
         }
       }
-      
+
       return isAvailable;
     });
   };
@@ -262,7 +269,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                       <div className="flex justify-between">
                         <span>{service.serviceName}</span>
                         <span className="font-medium">
-                          ${service.basePrice}
+                          Lkr {(service.basePrice ?? 0).toFixed(2)}
                         </span>
                       </div>
                       <div className="text-gray-500 text-xs">
@@ -275,7 +282,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             </div>
             {selectedServices.length > 0 && (
               <div className="mt-2 text-sm font-medium">
-                Total: ${getTotalPrice().toFixed(2)}
+                Total: Lkr {getTotalPrice().toFixed(2)}
               </div>
             )}
           </div>
