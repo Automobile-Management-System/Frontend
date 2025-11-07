@@ -23,16 +23,16 @@ export interface ServiceProgressDto {
   appointmentId: number;
   customerName: string;
   customerId: number; 
-  customerVehicleName: string; // Added
+  customerVehicleName: string; 
   status: AppointmentStatus; 
   serviceType: ServiceType; 
   appointmentDateTime: string;
   isTimerActive: boolean;
   currentTimerStartTime?: string;
   totalTimeLogged: number;
-  timeLogs: TimeLogDto[];
   
-  // Replaced serviceTitle
+  // timeLogs: TimeLogDto[]; // <-- REMOVED THIS LINE
+
   serviceNames: string[];
   modificationTitle?: string;
   modificationDescription?: string;
