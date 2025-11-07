@@ -54,19 +54,13 @@ class EmployeeTimeLogAPI {
     if (params.search && params.search.trim()) {
       searchParams.append('search', params.search.trim());
     }
-    if (params.startDate) {
-      searchParams.append('startDate', params.startDate);
-    }
-    if (params.endDate) {
-      searchParams.append('endDate', params.endDate);
-    }
     
     return searchParams.toString();
   }
 
   async getMyTimeLogs(params: TimeLogSearchParams = {}): Promise<PaginatedEmployeeTimeLogResponse> {
     const queryString = this.buildQueryString(params);
-    const endpoint = `/EmployeeTimeLog/my-logs${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/EmployeeTimeLog/history${queryString ? `?${queryString}` : ''}`;
     return this.makeRequest<PaginatedEmployeeTimeLogResponse>(endpoint);
   }
 }

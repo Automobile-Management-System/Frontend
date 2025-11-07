@@ -4,11 +4,11 @@ import { useState } from "react";
 import {
   Clock,
   Calendar,
-  Play,
-  CheckCircle2,
   RefreshCw,
   Timer,
   TrendingUp,
+  CheckCircle2,
+  Play,
 } from "lucide-react";
 import { useEmployeeTimeLog } from "@/hooks/useEmployeeTimeLog";
 import { useAuth } from "@/app/context/AuthContext";
@@ -23,7 +23,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatApiDate, formatApiTime } from "@/lib/apiUtils";
-import TimeLogStatsCard from "../../../../components/employee/TimeLogStatsCard";
 import TimeLogFilters from "../../../../components/employee/TimeLogFilters";
 import TimeLogPagination from "../../../../components/employee/TimeLogPagination";
 
@@ -41,39 +40,12 @@ export default function EmployeeTimeLogsPage() {
     refreshData,
   } = useEmployeeTimeLog();
 
-  const [viewMode, setViewMode] = useState<"services" | "modifications">(
-    "services"
-  );
+  const [viewMode, setViewMode] = useState<"services" | "modifications">("services");
 
   const formatDate = (dateString: string) => formatApiDate(dateString);
   const formatTime = (timeString: string) => formatApiTime(timeString);
 
-  const formatDuration = (startTime: string, endTime?: string) => {
-    const start = new Date(startTime);
-    const end = endTime ? new Date(endTime) : new Date();
-    const diffMs = end.getTime() - start.getTime();
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
-  };
 
-  const getStatusBadge = (isActive: boolean) => {
-    if (isActive) {
-      return (
-        <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-          <Play className="w-3 h-3" />
-          Active
-        </div>
-      );
-    } else {
-      return (
-        <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-          <CheckCircle2 className="w-3 h-3" />
-          Completed
-        </div>
-      );
-    }
-  };
 
   if (loading) {
     return (
@@ -104,7 +76,7 @@ export default function EmployeeTimeLogsPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-8xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -122,39 +94,6 @@ export default function EmployeeTimeLogsPage() {
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <TimeLogStatsCard
-          title="Today's Hours"
-          value={`${stats.totalHoursToday.toFixed(1)}h`}
-          icon={Timer}
-          colorClass="bg-blue-100 text-blue-600"
-        />
-        <TimeLogStatsCard
-          title="This Week"
-          value={`${stats.totalHoursThisWeek.toFixed(1)}h`}
-          icon={TrendingUp}
-          colorClass="bg-green-100 text-green-600"
-        />
-        <TimeLogStatsCard
-          title="This Month"
-          value={`${stats.totalHoursThisMonth.toFixed(1)}h`}
-          icon={Calendar}
-          colorClass="bg-purple-100 text-purple-600"
-        />
-        <TimeLogStatsCard
-          title="Active Logs"
-          value={stats.activeLogs}
-          icon={Play}
-          colorClass="bg-yellow-100 text-yellow-600"
-        />
-        <TimeLogStatsCard
-          title="Completed Today"
-          value={stats.completedLogsToday}
-          icon={CheckCircle2}
-          colorClass="bg-green-100 text-green-600"
-        />
-      </div>
 
       {/* Time Logs Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -178,32 +117,61 @@ export default function EmployeeTimeLogsPage() {
         <TimeLogFilters
           searchParams={searchParams}
           onFiltersChange={updateSearch}
+          totalCount={(() => {
+            switch (viewMode) {
+              case "services":
+                return timeLogs.filter(log => 
+                  log.completedServices && log.completedServices.length > 0
+                ).length;
+              case "modifications":
+                return timeLogs.filter(log => 
+                  log.completedModifications && log.completedModifications.length > 0
+                ).length;
+            }
+          })()}
           viewMode={viewMode}
-          onViewChange={(m) => setViewMode(m)}
-          totalCount={pagination.totalCount}
+          onViewChange={setViewMode}
         />
 
-        {(() => {
-          const filteredLogs = timeLogs.filter((log) =>
-            viewMode === "services"
-              ? log.services.length > 0
-              : log.modifications.length > 0
-          );
+{(() => {
+          // Filter logs based on view mode
+          const getFilteredLogs = () => {
+            switch (viewMode) {
+              case "services":
+                return timeLogs.filter(log => 
+                  log.completedServices && log.completedServices.length > 0
+                );
+              case "modifications":
+                return timeLogs.filter(log => 
+                  log.completedModifications && log.completedModifications.length > 0
+                );
+            }
+          };
+
+          const filteredLogs = getFilteredLogs();
 
           if (filteredLogs.length === 0) {
+            const getEmptyMessage = () => {
+              switch (viewMode) {
+                case "services":
+                  return {
+                    title: "No service time logs found",
+                    description: "There are no time logs with completed services."
+                  };
+                case "modifications":
+                  return {
+                    title: "No modification time logs found", 
+                    description: "There are no time logs with completed modifications."
+                  };
+              }
+            };
+
+            const emptyMessage = getEmptyMessage();
             return (
               <EmptyState
                 icon={Clock}
-                title={
-                  viewMode === "services"
-                    ? "No service time logs found"
-                    : "No modification time logs found"
-                }
-                description={
-                  viewMode === "services"
-                    ? "There are no time logs containing services."
-                    : "There are no time logs containing modifications."
-                }
+                title={emptyMessage.title}
+                description={emptyMessage.description}
               />
             );
           }
@@ -213,28 +181,27 @@ export default function EmployeeTimeLogsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {/* <TableHead className="min-w-[80px]">Log ID</TableHead> */}
                     <TableHead className="min-w-[150px]">Customer</TableHead>
+                    <TableHead className="min-w-[120px]">Vehicle</TableHead>
                     <TableHead className="min-w-[120px]">Start Time</TableHead>
                     <TableHead className="min-w-[120px]">End Time</TableHead>
-                    <TableHead className="min-w-[80px]">Duration</TableHead>
-                    <TableHead className="min-w-[100px]">Status</TableHead>
-                    {viewMode === "services" ? (
-                      <TableHead className="min-w-[150px]">Services</TableHead>
-                    ) : (
-                      <TableHead className="min-w-[150px]">
-                        Modifications
-                      </TableHead>
+                    <TableHead className="min-w-[80px]">Hours Logged</TableHead>
+                    {viewMode === "services" && (
+                      <TableHead className="min-w-[250px]">Completed Services</TableHead>
                     )}
-                    <TableHead className="min-w-[200px]">Notes</TableHead>
+                    {viewMode === "modifications" && (
+                      <TableHead className="min-w-[250px]">Completed Modifications</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredLogs.map((log) => (
                     <TableRow key={log.logId} className="hover:bg-gray-50">
-                      {/* <TableCell className="font-mono text-sm">#{log.logId}</TableCell> */}
                       <TableCell className="font-medium">
                         {log.customerName}
+                      </TableCell>
+                      <TableCell className="font-medium text-gray-600">
+                        {log.vehicleRegNumber}
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
@@ -264,76 +231,42 @@ export default function EmployeeTimeLogsPage() {
                       </TableCell>
                       <TableCell>
                         <span className="font-semibold text-blue-600">
-                          {log.hoursLogged
-                            ? `${log.hoursLogged.toFixed(1)}h`
-                            : formatDuration(
-                                log.startDateTime,
-                                log.endDateTime
-                              )}
+                          {log.hoursLogged ? `${log.hoursLogged.toFixed(1)}h` : "0h"}
                         </span>
                       </TableCell>
-                      <TableCell>{getStatusBadge(log.isActive)}</TableCell>
-                      <TableCell>
-                        {viewMode === "services" ? (
-                          log.services.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                              {log.services
-                                .slice(0, 2)
-                                .map((service, index) => (
-                                  <span
-                                    key={index}
-                                    className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium"
-                                  >
-                                    {service}
-                                  </span>
-                                ))}
-                              {log.services.length > 2 && (
-                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
-                                  +{log.services.length - 2} more
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-sm">None</span>
-                          )
-                        ) : log.modifications.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {log.modifications
-                              .slice(0, 2)
-                              .map((modification, index) => (
-                                <span
-                                  key={index}
-                                  className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium"
-                                >
-                                  {modification}
-                                </span>
-                              ))}
-                            {log.modifications.length > 2 && (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
-                                +{log.modifications.length - 2} more
+
+                      {/* Show only services in "services" view */}
+                      {viewMode === "services" && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-[400px]">
+                            {log.completedServices?.map((service, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium"
+                              >
+                                {service}
                               </span>
-                            )}
+                            ))}
                           </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm">None</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {log.notes ? (
-                          <div className="max-w-[200px]">
-                            <p
-                              className="text-sm text-gray-700 truncate"
-                              title={log.notes}
-                            >
-                              {log.notes}
-                            </p>
+                        </TableCell>
+                      )}
+
+                      {/* Show only modifications in "modifications" view */}
+                      {viewMode === "modifications" && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-[400px]">
+                            {log.completedModifications?.map((modification, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium"
+                              >
+                                {modification}
+                              </span>
+                            ))}
                           </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm">
-                            No notes
-                          </span>
-                        )}
-                      </TableCell>
+                        </TableCell>
+                      )}
+
                     </TableRow>
                   ))}
                 </TableBody>
