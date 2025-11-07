@@ -27,7 +27,7 @@ export const ServiceProgressControls: React.FC<ServiceProgressControlsProps> = (
   return (
     <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20 shadow-xl mb-8">
       {/* --- MODIFIED: grid-cols-2 --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1  gap-4">
         {/* Search Bar */}
         <div className="md:col-span-1">
           <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
@@ -50,24 +50,6 @@ export const ServiceProgressControls: React.FC<ServiceProgressControlsProps> = (
           </div>
         </div>
 
-        {/* Sort Options */}
-        <div className="md:col-span-1">
-          <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-1">
-            Sort By
-          </label>
-          <select
-            id="sort"
-            value={sortOption}
-            onChange={(e) => onSortChange(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border-gray-200 border shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          >
-            {sortOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* --- REMOVED: Filter Options Dropdown --- */}
       </div>
       
       {/* --- MODIFIED: Updated text --- */}
