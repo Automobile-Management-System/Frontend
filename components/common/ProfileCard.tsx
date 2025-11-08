@@ -355,7 +355,7 @@ export default function ProfileCard({ title, description, fields, onSave, onRefr
                 {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
             )}
-            <Button onClick={handleEdit} className="flex items-center gap-2">
+            <Button onClick={handleEdit} className="flex items-center gap-2 bg-[#0B2E66] hover:bg-[#1E63CC] text-white">
               <Edit3 className="w-4 h-4" />
               Edit Profile
             </Button>
@@ -368,7 +368,7 @@ export default function ProfileCard({ title, description, fields, onSave, onRefr
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button disabled={isLoading} className="flex items-center gap-2">
+                <Button disabled={isLoading} className="flex items-center gap-2 bg-[#0B2E66] hover:bg-[#1E63CC]">
                   <Save className="w-4 h-4" />
                   {isLoading ? 'Saving...' : 'Save Changes'}
                 </Button>
@@ -382,7 +382,7 @@ export default function ProfileCard({ title, description, fields, onSave, onRefr
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSave}>Save Changes</AlertDialogAction>
+                  <AlertDialogAction onClick={handleSave} className='bg-[#0B2E66] hover:bg-[#1E63CC]'>Save Changes</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
