@@ -718,8 +718,8 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-1">System overview and key metrics</p>
+          <h1 className="text-3xl font-bold text-[#0B2E66]">Admin Dashboard</h1>
+          <p className="text-[#1F2A3C] mt-1">System overview and key metrics</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -756,7 +756,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-3xl font-semibold mt-2">${(overview.totalRevenue / 1000).toFixed(1)}k</p>
+                  <p className="text-3xl font-semibold mt-2">LKR {(overview.totalRevenue).toFixed(2)}</p>
                   <p className="text-xs text-gray-500 mt-1">All time revenue</p>
                 </div>
                 <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">

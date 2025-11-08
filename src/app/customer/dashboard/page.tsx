@@ -741,7 +741,7 @@ export default function CustomerDashboard() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleNavigate("appointments")}
+                onClick={() => handleNavigate("services")}
               >
                 View All
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -862,7 +862,7 @@ export default function CustomerDashboard() {
             <Button
               variant="outline"
               className="h-auto py-6 flex flex-col gap-3 hover:bg-gray-50"
-              onClick={() => handleNavigate("appointments")}
+              onClick={() => handleNavigate("services")}
             >
               <div className="h-12 w-12 rounded-lg bg-blue-50 flex items-center justify-center">
                 <Calendar className="h-6 w-6 text-blue-600" />

@@ -28,7 +28,7 @@ export default function ViewServicesPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [pageNumber, setPageNumber] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
-  const [totalItems, setTotalItems] = React.useState(0); // ✅ Added to support Pagination component
+  const [totalItems, setTotalItems] = React.useState(0); // support Pagination component
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -80,7 +80,7 @@ export default function ViewServicesPage() {
     <div className="min-h-screen">
       <Navbar />
 
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-20 pb-20 px-4">
         <div className="container mx-auto">
           <h1 className="text-4xl lg:text-5xl font-semibold mb-6 animate-slide-up">View Services</h1>
 
