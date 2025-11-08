@@ -184,8 +184,8 @@ export default function EmployeeTimeLogsPage() {
                   <TableRow>
                     <TableHead className="min-w-[150px]">Customer</TableHead>
                     <TableHead className="min-w-[120px]">Vehicle</TableHead>
-                    <TableHead className="min-w-[120px]">Start Time</TableHead>
-                    <TableHead className="min-w-[120px]">End Time</TableHead>
+                    <TableHead className="min-w-[120px]">Start Date</TableHead>
+                    <TableHead className="min-w-[120px]">End Date</TableHead>
                     <TableHead className="min-w-[80px]">Hours Logged</TableHead>
                     {viewMode === "services" && (
                       <TableHead className="min-w-[250px]">Completed Services</TableHead>
@@ -209,9 +209,7 @@ export default function EmployeeTimeLogsPage() {
                           <div className="font-medium">
                             {formatDate(log.startDateTime)}
                           </div>
-                          <div className="text-gray-500">
-                            {formatTime(log.startDateTime)}
-                          </div>
+                
                         </div>
                       </TableCell>
                       <TableCell>
@@ -220,9 +218,7 @@ export default function EmployeeTimeLogsPage() {
                             <div className="font-medium">
                               {formatDate(log.endDateTime)}
                             </div>
-                            <div className="text-gray-500">
-                              {formatTime(log.endDateTime)}
-                            </div>
+                           
                           </div>
                         ) : (
                           <span className="text-yellow-600 text-sm font-medium">
