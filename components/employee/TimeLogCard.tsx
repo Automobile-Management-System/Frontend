@@ -3,6 +3,7 @@
 import { Play, CheckCircle2 } from 'lucide-react';
 import { EmployeeTimeLogDTO } from '@/types/employeeTimeLog';
 import { formatApiDate, formatApiTime } from '@/lib/apiUtils';
+import { formatHoursAndMinutes } from '@/lib/utils';
 
 interface TimeLogCardProps {
   log: EmployeeTimeLogDTO;
@@ -68,7 +69,7 @@ export default function TimeLogCard({ log }: TimeLogCardProps) {
             <div>
               <p className="text-sm font-medium text-gray-600">Duration</p>
               <p className="text-sm text-gray-900">
-                {log.hoursLogged ? `${log.hoursLogged.toFixed(1)}h` : formatDuration(log.startDateTime, log.endDateTime)}
+                {log.hoursLogged ? formatHoursAndMinutes(log.hoursLogged) : formatDuration(log.startDateTime, log.endDateTime)}
               </p>
             </div>
 
