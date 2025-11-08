@@ -311,11 +311,12 @@ const PaymentsPage = () => {
                     <Clock className="h-7 w-7 text-yellow-500 flex-shrink-0" />
                   )}
                   <div>
+                    {/* This code already shows the serviceName as the title */}
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {invoice.invoiceNumber}
+                      {invoice.serviceName}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {invoice.serviceName}
+                      {invoice.invoiceNumber}
                     </p>
                   </div>
                 </div>

@@ -112,31 +112,7 @@ const About = () => {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="py-20 px-4 bg-card/50">
-        <div className="container mx-auto text-center animate-slide-up">
-          <h2 className="text-4xl font-semibold mb-6">Meet Our Team</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-12">
-            Our passionate team of developers, designers, and automotive experts 
-            work tirelessly to bring innovation and reliability to every aspect of our platform.
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-6">
-            {[1, 2, 3, 4].map((member) => (
-              <Card key={member} className="w-64 transition-smooth hover:shadow-lg hover:-translate-y-1 animate-scale-in border-border/50">
-                <CardContent className="pt-6">
-                  <div className="w-24 h-24 rounded-full bg-blue-200 mx-auto mb-4" />
-                  <CardTitle className="text-lg">Team Member {member}</CardTitle>
-                  <CardDescription>Technician</CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      </section>   
       <Footer />
     </div>
   );
