@@ -5,6 +5,8 @@ import {
   ServiceProgressDto,
   AppointmentStatus,
 } from "../../src/types/serviceProgress";
+// Import the new alert components
+import { Alert, AlertTitle, AlertDescription } from "./Alert"; // Adjust path as needed
 
 interface ServiceProgressCardProps {
   appointment: ServiceProgressDto;
@@ -33,8 +35,10 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
 
     const interval = setInterval(() => {
       const timeString = appointment.currentTimerStartTime!;
-      const startTimeString = timeString.endsWith('Z') ? timeString : timeString + 'Z';
-      
+      const startTimeString = timeString.endsWith("Z")
+        ? timeString
+        : timeString + "Z";
+
       const start = new Date(startTimeString);
 
       const now = new Date();
@@ -51,10 +55,10 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
       const seconds = totalSeconds % 60;
 
       const formattedTime = [
-        String(hours).padStart(2, '0'),
-        String(minutes).padStart(2, '0'),
-        String(seconds).padStart(2, '0')
-      ].join(':');
+        String(hours).padStart(2, "0"),
+        String(minutes).padStart(2, "0"),
+        String(seconds).padStart(2, "0"),
+      ].join(":");
 
       setElapsedTime(formattedTime);
     }, 1000);
@@ -81,22 +85,20 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
       : "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-300";
   };
 
-  // Converts decimal hours (e.g., 1.51) into 00H 00M 00S format
   const formatTotalTime = (totalHours: number) => {
     if (totalHours === 0 || isNaN(totalHours)) {
       return "00h 00m ";
     }
-    
+
     const totalSeconds = Math.floor(totalHours * 3600);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    // --- MODIFIED: Use H, M, S as requested ---
     return [
-      String(hours).padStart(2, '0') + 'h',
-      String(minutes).padStart(2, '0') + 'm',
-    ].join(' ');
+      String(hours).padStart(2, "0") + "h",
+      String(minutes).padStart(2, "0") + "m",
+    ].join(" ");
   };
 
   return (
@@ -114,7 +116,9 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
                   </h3>
                   <ul className="list-disc list-inside text-gray-700 pl-1">
                     {appointment.serviceNames.map((name, index) => (
-                      <li key={index} className="text-sm">{name}</li>
+                      <li key={index} className="text-sm">
+                        {name}
+                      </li>
                     ))}
                   </ul>
                 </>
@@ -199,17 +203,29 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
             </div>
           </div>
 
+          {/* === MODIFICATION: ALERT SYSTEM INTEGRATED === */}
           {appointment.isTimerActive && (
-            <div className="flex items-center gap-3 bg-green-50 px-4 py-3 rounded-xl border border-green-200">
-              <div className="relative">
-                <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
-                <div className="absolute inset-0 w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
-              </div>
-              <span className="text-sm text-green-700 font-bold">
-                Timer Active
-              </span>
-            </div>
+            <Alert className="bg-green-50 border-green-200 text-green-800">
+              <svg
+                className="h-4 w-4 text-green-600" // Matches cva spec
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <AlertTitle className="text-green-900">Timer Active</AlertTitle>
+              <AlertDescription className="text-green-700">
+                Work is currently in progress.
+              </AlertDescription>
+            </Alert>
           )}
+          {/* === END MODIFICATION === */}
         </div>
       </div>
 
@@ -219,7 +235,9 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
           <button
             onClick={onStartTimer}
             disabled={appointment.status === "Completed"}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-2xl hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:transform-none"
+            // === MODIFICATION: PRIMARY COLORS APPLIED ===
+            className="bg-[#0B2E66] text-white px-6 py-4 rounded-2xl hover:bg-[#1E63CC] disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:transform-none"
+            // === END MODIFICATION ===
           >
             <svg
               className="w-5 h-5"
@@ -227,11 +245,12 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
+              {/* Using a "play" icon for "Start" */}
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-6 4h8M6 6h12M6 18h12"
+                d="M5 3l14 9-14 9V3z"
               />
             </svg>
             Start Timer
@@ -239,7 +258,7 @@ export const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
         ) : (
           <button
             onClick={onPauseTimer}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-4 rounded-2xl hover:from-amber-600 hover:to-orange-700 flex items-center justify-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-4 rounded-2xl hover:from-amber-600 hover:to-orange-700 flex items-center justify-center gap-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-1all duration-200"
           >
             <svg
               className="w-5 h-5"
