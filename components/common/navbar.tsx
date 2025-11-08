@@ -61,7 +61,7 @@ export function Navbar() {
   const displayInitials = user
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
     : "G";
-  const userAvatar = ""; // You can add this to your User interface later if needed
+  const userAvatar = user?.profileImage || ""; // Use profile image from user object
 
   // --- HANDLERS ---
   const handleLogout = () => {
@@ -192,7 +192,13 @@ export function Navbar() {
                     className="flex items-center gap-3 h-auto py-2 px-3 hover:bg-white/10 text-white"
                   >
                     <Avatar className="h-9 w-9 border-2 border-cyan-400">
-                      <AvatarImage src={userAvatar} alt={displayName} />
+                      {userAvatar ? (
+                        <AvatarImage 
+                          src={userAvatar} 
+                          alt={displayName}
+                          className="object-cover"
+                        />
+                      ) : null}
                       <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-500 text-white text-sm font-bold">
                         {displayInitials}
                       </AvatarFallback>
@@ -278,7 +284,13 @@ export function Navbar() {
               <div className="pt-4 border-t border-purple-500/30 mt-4">
                 <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-lg border border-purple-500/30 mb-3">
                   <Avatar className="h-10 w-10 border-2 border-cyan-400">
-                    <AvatarImage src={userAvatar} alt={displayName} />
+                    {userAvatar ? (
+                      <AvatarImage 
+                        src={userAvatar} 
+                        alt={displayName}
+                        className="object-cover"
+                      />
+                    ) : null}
                     <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-500 text-white text-sm font-bold">
                       {displayInitials}
                     </AvatarFallback>

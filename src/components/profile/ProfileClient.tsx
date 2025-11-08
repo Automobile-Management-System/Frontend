@@ -5,6 +5,7 @@ import ProfileCard from "../../../components/common/ProfileCard";
 import type { ProfileData, ProfileUpdateDto } from "@/services/profileAPI";
 import { profileApiService } from "@/services/profileAPI";
 import { toast } from "sonner";
+import { useAuth } from "@/app/context/AuthContext";
 
 interface ProfileClientProps {
   title: string;
@@ -15,6 +16,7 @@ interface ProfileClientProps {
 export default function ProfileClient({ title, description, initialProfile }: ProfileClientProps) {
   const [profileData, setProfileData] = useState<ProfileData | null>(initialProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { refreshUserProfile } = useAuth();
 
   const isGoogleUser = (): boolean => {
     return profileData?.email?.includes("@gmail.com") || false;
@@ -68,7 +70,8 @@ export default function ProfileClient({ title, description, initialProfile }: Pr
             const refreshResult = await profileApiService.getCurrentUserProfile();
             if (refreshResult.success && refreshResult.data) {
               setProfileData(refreshResult.data);
-              // Removed the sync message - silent background refresh
+              // Also refresh the user context to update navbar
+              await refreshUserProfile();
             }
           } catch (error) {
             console.error("Error refreshing after save:", error);
@@ -144,8 +147,9 @@ export default function ProfileClient({ title, description, initialProfile }: Pr
       id: "profilePicture",
       label: "Profile Picture",
       value: profileData.profilePicture || "",
-      type: "readonly" as const,
-      editable: false,
+      type: "file" as const,
+      editable: true,
+      accept: "image/*",
     },
   ];
 

@@ -18,6 +18,7 @@ interface User {
   firstName: string;
   lastName: string;
   role: "Admin" | "Employee" | "Customer";
+  profileImage?: string; // Profile image URL
 }
 
 // Define the Context shape
@@ -28,6 +29,8 @@ interface AuthContextType {
   // We'll let the login page handle the login API call
   // But the context will provide a way to set the user after login
   setUser: (user: User | null) => void;
+  // Function to refresh user profile data
+  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +58,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (response.ok) {
           const userData = await response.json();
           console.log("Profile data:", userData);
+
+          // Fetch additional profile data including profile image
+          try {
+            const profileResponse = await fetch("http://localhost:5001/api/ProfileManagement", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+            });
+
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json();
+              // Merge profile data with auth data
+              userData.profileImage = profileData.profilePicture;
+            }
+          } catch (profileError) {
+            console.error("Failed to fetch profile data:", profileError);
+          }
 
           // If user is an Employee, try to get employee ID from database
           if (userData.role === "Employee") {
@@ -162,8 +184,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const refreshUserProfile = async () => {
+    try {
+      // Fetch auth data
+      const response = await fetch("http://localhost:5001/api/Auth/profile", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        
+        // Fetch additional profile data including profile image
+        try {
+          const profileResponse = await fetch("http://localhost:5001/api/ProfileManagement", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          });
+
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            // Merge profile data with auth data
+            userData.profileImage = profileData.profilePicture;
+          }
+        } catch (profileError) {
+          console.error("Failed to fetch profile data:", profileError);
+        }
+
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error("Failed to refresh user profile:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, logout, setUser }}>
+    <AuthContext.Provider value={{ user, isLoading, logout, setUser, refreshUserProfile }}>
       {children}
     </AuthContext.Provider>
   );
