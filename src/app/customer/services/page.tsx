@@ -410,7 +410,7 @@ const ServicesPage = () => {
                           Total Amount
                         </p>
                         <p className="text-2xl font-bold text-green-600">
-                          Lkr{" "}
+                          LKR{" "}
                           {appointment.services
                             .reduce((sum, s) => sum + (s.basePrice ?? 0), 0)
                             .toFixed(2)}
@@ -474,7 +474,7 @@ const ServicesPage = () => {
                           >
                             <span>{service.serviceName}</span>
                             <span className="text-green-600 font-bold">
-                              Lkr {(service.basePrice ?? 0).toFixed(2)}
+                              LKR {(service.basePrice ?? 0).toFixed(2)}
                             </span>
                           </div>
                         ))}

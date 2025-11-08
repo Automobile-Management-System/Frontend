@@ -269,7 +269,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                       <div className="flex justify-between">
                         <span>{service.serviceName}</span>
                         <span className="font-medium">
-                          Lkr {(service.basePrice ?? 0).toFixed(2)}
+                          LKR {(service.basePrice ?? 0).toFixed(2)}
                         </span>
                       </div>
                       <div className="text-gray-500 text-xs">
@@ -282,7 +282,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             </div>
             {selectedServices.length > 0 && (
               <div className="mt-2 text-sm font-medium">
-                Total: Lkr {getTotalPrice().toFixed(2)}
+                Total: LKR {getTotalPrice().toFixed(2)}
               </div>
             )}
           </div>
