@@ -137,6 +137,10 @@ export const useServiceProgress = (employeeId: number) => {
 
   // --- MODIFICATION START ---
   // Updated stopTimerOnly to also use the totalTimeLogged from the API response
+// ... imports
+
+  // --- MODIFICATION START ---
+  // Updated stopTimerOnly to also use the totalTimeLogged from the API response
   const stopTimerOnly = useCallback(
     async (
       appointmentId: number,
@@ -145,30 +149,33 @@ export const useServiceProgress = (employeeId: number) => {
       try {
         const result = await serviceProgressAPI.stopTimer(appointmentId, userId);
 
+        // --- THIS IS THE FIX ---
+        // OLD: Manually updating state
+        // if (result.success) {
+        //   setServiceProgress((prevServices) => ... );
+        // } else {
+        //   throw new Error(result.message || "Failed to stop timer");
+        // }
+
+        // NEW: Refresh all data from the server
+        // This ensures the new "Completed" status and all timer
+        // info is 100% accurate from the database.
         if (result.success) {
-          setServiceProgress((prevServices) =>
-            prevServices.map((service) =>
-              service.appointmentId === appointmentId
-                ? {
-                    ...service,
-                    isTimerActive: false,
-                    currentTimerStartTime: undefined,
-                    // Use the new total time from the API response
-                    totalTimeLogged: result.totalTimeLogged,
-                  }
-                : service
-            )
-          );
+          refreshPendingServices(); // Re-fetch data
         } else {
           throw new Error(result.message || "Failed to stop timer");
         }
+        // --- END FIX ---
+        
         return result;
       } catch (error) {
         throw error;
       }
     },
-    []
+    [refreshPendingServices] // <-- Add dependency
   );
+  // --- MODIFICATION END ---
+// ... rest of the file
   // --- MODIFICATION END ---
 
   const updateStatus = useCallback(

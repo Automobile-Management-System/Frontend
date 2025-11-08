@@ -114,7 +114,7 @@ const ServiceProgressPage: React.FC = () => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredAndSortedProgress.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredAndSortedProgress, currentPage]);
-  
+ 
   const handleTimerAction = async (
     action: () => Promise<any>,
     actionName: string
@@ -152,29 +152,31 @@ const ServiceProgressPage: React.FC = () => {
     }
   };
 
+  // --- THIS IS THE CORRECTED FUNCTION ---
   const handleStopAndComplete = async (appointmentId: number) => {
-    if (!employeeId) {
-      alert("Employee ID not found. Please refresh the page and try again.");
-      return;
-    }
-    try {
-      try {
-        await stopTimerOnly(appointmentId, employeeId);
-      } catch (timerError) {
-        const errorMessage =
-          timerError instanceof Error ? timerError.message : "Unknown error";
-        console.error("Stop timer failed:", errorMessage);
-        if (!errorMessage.includes("No active timer found")) {
-          throw timerError;
-        }
-      }
-      await updateStatus(appointmentId, 3, "Service completed"); // 3 = Completed
-    } catch (error) {
-      console.error("Failed to stop and complete:", error);
-      alert("Failed to complete the service. Please try again.");
-      refreshPendingServices();
-    }
-  };
+        if (!employeeId) {
+          alert("Employee ID not found. Please refresh the page and try again.");
+          return;
+        }
+        
+        // We only need to call stopTimerOnly.
+        // The backend's /timer/stop endpoint handles everything:
+        // 1. Stops the timer
+        // 2. Sets status to "Completed"
+        // 3. Creates the payment record
+        //
+        // Your useServiceProgress hook now refreshes data automatically.
+        try {
+          await stopTimerOnly(appointmentId, employeeId);
+        } catch (error) {
+           const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+           console.error("Failed to stop and complete:", errorMessage);
+           alert(`Failed to complete the service: ${errorMessage}`);
+           refreshPendingServices(); // Refresh just in case
+        }
+      };
+  // --- END CORRECTION ---
 
   const openStatusModal = (appointment: ServiceProgressDto) => {
     setSelectedAppointment(appointment);
@@ -387,7 +389,7 @@ const ServiceProgressPage: React.FC = () => {
 
       {/* --- Main Content --- */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        
+       
         <ServiceProgressControls
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
