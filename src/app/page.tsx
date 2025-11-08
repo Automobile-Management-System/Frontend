@@ -81,23 +81,7 @@ const Home = () => {
     }
   ];
 
-  const reviews = [
-    {
-      name: "John Doe",
-      rating: 5,
-      comment: "Excellent service! Booking was seamless and my car was ready on time."
-    },
-    {
-      name: "Emma Stone",
-      rating: 4,
-      comment: "Great platform and very user-friendly. Loved the notifications feature."
-    },
-    {
-      name: "Mike Johnson",
-      rating: 5,
-      comment: "AI assistant helped me resolve my queries instantly. Highly recommend!"
-    }
-  ];
+  
 
   return (
     <div className="min-h-screen">
@@ -191,35 +175,7 @@ const Home = () => {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* Reviews Section */}
-      <section className="py-20 px-4 bg-card/50">
-        <div className="container mx-auto">
-          <div className="text-center mb-16 animate-slide-up">
-            <h2 className="mb-4 text-4xl font-semibold">Customer Reviews</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              See what our users have to say about our service
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reviews.map((review, index) => (
-              <Card key={index} className="transition-smooth hover:shadow-lg hover:-translate-y-1 animate-scale-in border-border/50">
-                <CardHeader>
-                  <div className="flex items-center mb-2">
-                    {Array.from({ length: review.rating }).map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-yellow-400" />
-                    ))}
-                  </div>
-                  <CardTitle>{review.name}</CardTitle>
-                  <CardDescription>{review.comment}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      </section>     
       <Footer/>
     </div>
   );
