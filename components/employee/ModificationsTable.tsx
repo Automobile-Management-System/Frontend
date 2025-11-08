@@ -13,7 +13,7 @@ export default function ModificationsTable({ timeLogs }: Props) {
 
   timeLogs.forEach((log) => {
     const date = log.endDateTime || log.startDateTime;
-    log.modifications.forEach((m) => {
+    log.completedModifications?.forEach((m) => { // <-- FIX: Use 'completedModifications' and add '?'
       const existing = map.get(m) || { count: 0, lastUsed: null, customers: new Set<string>() };
       existing.count += 1;
       existing.customers.add(log.customerName);

@@ -1,5 +1,3 @@
-// components/employee/TimeLogCard.tsx
-
 import { Play, CheckCircle2 } from 'lucide-react';
 import { EmployeeTimeLogDTO } from '@/types/employeeTimeLog';
 import { formatApiDate, formatApiTime } from '@/lib/apiUtils';
@@ -22,7 +20,8 @@ export default function TimeLogCard({ log }: TimeLogCardProps) {
   };
 
   const getStatusBadge = () => {
-    if (log.isActive) {
+    // FIX 1: 'isActive' does not exist. Use '!log.endDateTime' to check for active status.
+    if (!log.endDateTime) {
       return (
         <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
           <Play className="w-3 h-3" />
@@ -78,11 +77,13 @@ export default function TimeLogCard({ log }: TimeLogCardProps) {
             </div>
           </div>
 
-          {log.services.length > 0 && (
+          {/* FIX 2: Use 'completedServices' and optional chaining '?.'. */}
+          {log.completedServices && log.completedServices.length > 0 && (
             <div className="mb-3">
               <p className="text-sm font-medium text-gray-600 mb-2">Services</p>
               <div className="flex flex-wrap gap-2">
-                {log.services.map((service, index) => (
+                {/* FIX 3: Use 'completedServices' and add types for 'service' and 'index' */}
+                {log.completedServices.map((service: string, index: number) => (
                   <span
                     key={index}
                     className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium"
@@ -94,11 +95,13 @@ export default function TimeLogCard({ log }: TimeLogCardProps) {
             </div>
           )}
 
-          {log.modifications.length > 0 && (
+          {/* FIX 4: Use 'completedModifications' and optional chaining '?.'. */}
+          {log.completedModifications && log.completedModifications.length > 0 && (
             <div className="mb-3">
               <p className="text-sm font-medium text-gray-600 mb-2">Modifications</p>
               <div className="flex flex-wrap gap-2">
-                {log.modifications.map((modification, index) => (
+                {/* FIX 5: Use 'completedModifications' and add types for 'modification' and 'index' */}
+                {log.completedModifications.map((modification: string, index: number) => (
                   <span
                     key={index}
                     className="px-2 py-1 bg-purple-100 text-purple-800 rounded-md text-xs font-medium"
