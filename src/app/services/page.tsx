@@ -125,7 +125,7 @@ export default function ViewServicesPage() {
             </div>
           )}
 
-          {/* ✅ Replaced old pagination buttons with custom Pagination component */}
+          {/* Pagination component */}
           <div className="mt-8">
             <Pagination
               currentPage={pageNumber}
