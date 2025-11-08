@@ -517,7 +517,7 @@ export function UserDialog({
             </Button>
             <Button
               type="submit"
-              className="bg-orange-400 text-white hover:bg-orange-300"
+              className="bg-[#0B2E66] text-white hover:bg-[#1E63CC]"
             >
               {isEdit ? 'Update User' : 'Create User'}
             </Button>

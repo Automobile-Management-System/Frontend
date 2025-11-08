@@ -149,7 +149,7 @@ export function VehicleDialog({ open, onOpenChange, onSubmit, initialData }: Veh
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-orange-400 text-white hover:bg-orange-300">
+            <Button type="submit" className="bg-[#0B2E66] text-white hover:bg-[#1E63CC]">
               {initialData ? 'Update Vehicle' : 'Add Vehicle'}
             </Button>
           </div>
