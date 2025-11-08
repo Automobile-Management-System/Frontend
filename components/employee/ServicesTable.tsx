@@ -13,7 +13,10 @@ export default function ServicesTable({ timeLogs }: Props) {
 
   timeLogs.forEach((log) => {
     const date = log.endDateTime || log.startDateTime;
-    log.services.forEach((s) => {
+    
+    // FIX 1: Use 'completedServices' and optional chaining '?.'.
+    // FIX 2: Add type 'string' to parameter 's'.
+    log.completedServices?.forEach((s: string) => {
       const existing = map.get(s) || { count: 0, lastUsed: null, customers: new Set<string>() };
       existing.count += 1;
       existing.customers.add(log.customerName);
