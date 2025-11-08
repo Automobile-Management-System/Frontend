@@ -165,24 +165,7 @@ export function Navbar() {
           {isLoading ? (
             <div className="h-9 w-24 rounded-lg bg-white/10 animate-pulse"></div>
           ) : isLoggedIn ? (
-            <>
-              {/* ... (Notifications Dropdown - Unchanged) ... */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10">
-                    <Bell className="h-5 w-5" />
-                    <Badge
-                      variant="destructive"
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500"
-                    >
-                      3
-                    </Badge>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 bg-slate-800 border-purple-500/30 text-white">
-                    {/* ... (notification items) ... */}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <>   
 
               {/* User Profile Dropdown */}
               <DropdownMenu>
