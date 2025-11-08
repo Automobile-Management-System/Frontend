@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatApiDate, formatApiTime } from "@/lib/apiUtils";
+import { formatHoursAndMinutes } from "@/lib/utils";
 import TimeLogFilters from "../../../../components/employee/TimeLogFilters";
 import TimeLogPagination from "../../../../components/employee/TimeLogPagination";
 
@@ -231,7 +232,7 @@ export default function EmployeeTimeLogsPage() {
                       </TableCell>
                       <TableCell>
                         <span className="font-semibold text-blue-600">
-                          {log.hoursLogged ? `${log.hoursLogged.toFixed(1)}h` : "0h"}
+                          {log.hoursLogged ? formatHoursAndMinutes(log.hoursLogged) : "0h 0m"}
                         </span>
                       </TableCell>
 
