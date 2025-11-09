@@ -6,7 +6,7 @@ let connection: signalR.HubConnection | null = null;
 export const getSignalRConnection = (): signalR.HubConnection => {
   if (!connection) {
     connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5001/hubs/admin-notify', {
+      .withUrl('http://localhost:5000/hubs/admin-notify', {
         withCredentials: true,
       })
       .withAutomaticReconnect()
