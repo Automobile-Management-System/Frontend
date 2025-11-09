@@ -30,7 +30,7 @@ export default function Login() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:5001/api/Auth/login/v1', {
+      const response = await fetch('http://localhost:5000/api/Auth/login/v1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = () => {
-    window.location.href = 'http://localhost:5001/api/Auth/google-login';
+    window.location.href = 'http://localhost:5000/api/Auth/google-login';
   };
 
   return (
