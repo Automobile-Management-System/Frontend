@@ -35,7 +35,7 @@ export default function ModificationsPage() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5001/api/customer-modification-requests', {
+      const res = await fetch('http://localhost:5000/api/customer-modification-requests', {
         credentials: 'include',
       });
       if (!res.ok) throw new Error(`Error: ${res.status}`);
