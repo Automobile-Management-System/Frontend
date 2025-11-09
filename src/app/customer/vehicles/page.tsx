@@ -14,7 +14,7 @@ import { Car, Edit2, Trash2, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { VehicleDialog } from "../../../../components/customer/VehicleDialog";
 
-const API_BASE = "http://localhost:5001/api/CustomerVehicle";
+const API_BASE = "http://localhost:5000/api/CustomerVehicle";
 
 interface Vehicle {
   vehicleId: number;
