@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import ProfileClient from '@/components/profile/ProfileClient';
 
 export default async function EmployeeProfilePage() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   let initialProfile = null;
 
   try {
