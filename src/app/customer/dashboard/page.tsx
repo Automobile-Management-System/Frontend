@@ -22,7 +22,7 @@
 // import { VehicleDialog } from "../../../../components/customer/VehicleDialog";
 // import { toast } from "sonner"; 
 
-// const API_BASE = "http://localhost:5001/api/CustomerDashboard";
+// const API_BASE = "http://localhost:5000/api/CustomerDashboard";
 
 // export default function CustomerDashboard() {
 //   const router = useRouter();
@@ -125,7 +125,7 @@
 
 //   const handleAddVehicle = async (vehicleData: any) => {
 //     try {
-//       const res = await fetch(`http://localhost:5001/api/CustomerVehicle`, {
+//       const res = await fetch(`http://localhost:5000/api/CustomerVehicle`, {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
 //         credentials: "include",
@@ -459,7 +459,7 @@ import { useRouter } from "next/navigation";
 import { VehicleDialog } from "../../../../components/customer/VehicleDialog";
 import { toast } from "sonner"; 
 
-const API_BASE = "http://localhost:5001/api/CustomerDashboard";
+const API_BASE = "http://localhost:5000/api/CustomerDashboard";
 
 export default function CustomerDashboard() {
   const router = useRouter();
@@ -604,7 +604,7 @@ export default function CustomerDashboard() {
 
   const handleAddVehicle = async (vehicleData: any) => {
     try {
-      const res = await fetch(`http://localhost:5001/api/CustomerVehicle`, {
+      const res = await fetch(`http://localhost:5000/api/CustomerVehicle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
