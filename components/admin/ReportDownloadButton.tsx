@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Download, RefreshCw } from 'lucide-react';
 
 // API URL (centralized for easy changes)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 interface ReportDownloadButtonProps {
   /** The API endpoint to fetch the report from (e.g., "/admin/payments/report") */
