@@ -31,7 +31,7 @@ export interface ApiResponse<T> {
 }
 
 class ProfileApiService {
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   /**
    * Get current user's profile from the backend
