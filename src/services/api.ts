@@ -2,8 +2,8 @@
 import axios from 'axios';
 import { Vehicle } from '@/types';
 
-const VEHICLE_URL = 'http://localhost:5001/api/CustomerVehicle';
-const BASE_URL = 'http://localhost:5001/api/customer-modification-requests';
+const VEHICLE_URL = 'http://localhost:5000/api/CustomerVehicle';
+const BASE_URL = 'http://localhost:5000/api/customer-modification-requests';
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
