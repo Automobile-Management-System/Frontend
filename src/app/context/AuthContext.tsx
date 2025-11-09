@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkUserSession = async () => {
       try {
         // The browser automatically sends the HttpOnly cookie
-        const response = await fetch("http://localhost:5001/api/Auth/profile", {
+        const response = await fetch("http://localhost:5000/api/Auth/profile", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   "Attempting to fetch employee ID from dashboard API..."
                 );
                 const dashboardResponse = await fetch(
-                  "http://localhost:5001/api/EmployeeDashboard/appointments/today/upcoming-count",
+                  "http://localhost:5000/api/EmployeeDashboard/appointments/today/upcoming-count",
                   {
                     method: "GET",
                     headers: {
@@ -148,7 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:5001/api/Auth/logout", {
+      await fetch("http://localhost:5000/api/Auth/logout", {
         method: "POST",
         credentials: "include",
       });
