@@ -62,7 +62,7 @@ interface CustomerActivityDto {
   averageRating: number;
 }
 
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = 'http://localhost:5000/api';
 
 const AnalyticsPage: React.FC = () => {
   const [overview, setOverview] = useState<AnalyticsOverviewDto | null>(null);
