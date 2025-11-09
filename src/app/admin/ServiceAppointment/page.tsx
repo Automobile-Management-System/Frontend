@@ -10,7 +10,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { User, Calendar, Car, Wrench, Clock, CheckCircle, AlertCircle, Loader, Clock1 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert'; // <-- Added
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 interface ServiceAppointment {
   appointmentId: number;
