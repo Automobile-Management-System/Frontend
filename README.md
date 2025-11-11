@@ -1,4 +1,4 @@
-# AutoMobile - Campus Frontend
+# AutoMobile - Frontend
 
 ## Project Overview
 This project is a web application designed for managing automobile-related tasks on campus. It provides users with an intuitive interface to interact with various features related to automobiles.
