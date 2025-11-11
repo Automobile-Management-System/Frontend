@@ -56,8 +56,6 @@ This project utilizes the following technologies:
 
 - **React**: A JavaScript library for building user interfaces.
 - **Node.js**: JavaScript runtime for server-side programming.
-- **Express**: Web framework for Node.js.
-- **MongoDB**: NoSQL database for data storage.
 - **JWT**: For user authentication.
 
 
