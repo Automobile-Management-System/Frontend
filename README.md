@@ -51,14 +51,6 @@ The project is organized into several key directories:
     - **/services**: API service calls and business logic.
     - **/styles**: CSS and styling files.
     
-## Technologies Used
-This project utilizes the following technologies:
-
-- **React**: A JavaScript library for building user interfaces.
-- **Node.js**: JavaScript runtime for server-side programming.
-- **JWT**: For user authentication.
-
-
 
 ## Acknowledgments
 - Thanks to the contributors and the open-source community for their support and resources.
